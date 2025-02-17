@@ -14,3 +14,4 @@
 .cxx
 local.defaults.properties
 secrets.propeties
+/src/main/AndroidManifest.xml
