@@ -15,6 +15,7 @@ import com.example.lp_logistics.BuildConfig
 import com.example.lp_logistics.presentation.components.showToast
 import com.example.lp_logistics.presentation.theme.LightBlue
 import com.example.lp_logistics.presentation.theme.LightOrange
+import com.example.lp_logistics.presentation.theme.Orange
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.maps.GoogleMap
@@ -161,11 +162,21 @@ fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Nav
         if (viewLifecycleOwner != null) {
             println("✅ viewLifecycleOwner is available!")
 
+            val stylingOptions = StylingOptions()
+                .primaryDayModeThemeColor(LightOrange.toArgb())
+                .primaryNightModeThemeColor(LightBlue.toArgb())
+                .secondaryNightModeThemeColor(LightBlue.toArgb())
+                .headerLargeManeuverIconColor(Color.White.toArgb())
 
+            navFragment.setStylingOptions(stylingOptions)
+            navFragment.setTripProgressBarEnabled(true)
+            navFragment.setSpeedometerEnabled(true)
+            navFragment.setSpeedLimitIconEnabled(true)
+            DisplayOptions().showStopSigns(true).showTrafficLights(true)
 
             val stopButton = android.widget.Button(navFragment.requireContext()).apply {
                 text = "Stop Trip"
-                setBackgroundColor(LightOrange.toArgb())
+                setBackgroundColor(Orange.toArgb())
                 textSize = 16f
                 setPadding(20, 10, 20, 10)
                 setOnClickListener {
@@ -185,9 +196,6 @@ fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Nav
             }
 
             navFragment.setCustomControl(buttonContainer, CustomControlPosition.FOOTER)
-
-
-
 
             println("✅ Styling options applied successfully!")
         } else {

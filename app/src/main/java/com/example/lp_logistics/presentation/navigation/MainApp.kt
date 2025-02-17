@@ -63,7 +63,8 @@ fun MainApp(
 
             composable("navigation") {
                 if (locationPermissionGranted) {
-                    NavigationScreen(activity,destination = LatLng(19.432608, -99.133209)) //check if id need context or not
+                    //32.460812, -116.824178
+                    NavigationScreen(activity,destination = LatLng(32.460812, -116.824178)) //check if id need context or not
                 } else {
                     Column(
                         modifier = Modifier.fillMaxSize(),
