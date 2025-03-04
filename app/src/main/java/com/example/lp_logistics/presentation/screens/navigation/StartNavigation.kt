@@ -1,23 +1,23 @@
 package com.example.lp_logistics.presentation.screens.navigation
 
-import android.R
+import com.example.lp_logistics.R
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
+import android.health.connect.datatypes.ExerciseRoute
+import android.location.Location
 import android.view.Gravity
 import android.widget.FrameLayout
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.FragmentActivity
+import androidx.navigation.NavController
 import com.example.lp_logistics.BuildConfig
 import com.example.lp_logistics.presentation.components.showToast
 import com.example.lp_logistics.presentation.theme.LightBlue
-import com.example.lp_logistics.presentation.theme.LightOrange
 import com.example.lp_logistics.presentation.theme.Orange
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.navigation.CustomControlPosition
@@ -29,9 +29,15 @@ import com.google.android.libraries.navigation.SimulationOptions
 import com.google.android.libraries.navigation.Waypoint
 import com.google.android.libraries.navigation.StylingOptions
 import com.google.android.libraries.navigation.SupportNavigationFragment
+import com.google.android.gms.maps.model.MarkerOptions
 
 @SuppressLint("MissingPermission")
-fun initializeNavigationApi(activity: FragmentActivity, navigationView: NavigationView?, containerId: Int?, onFragmentReady: (Navigator, SupportNavigationFragment) -> Unit) {
+fun initializeNavigationApi(
+    activity: FragmentActivity,
+    navigationView: NavigationView?,
+    containerId: Int?,
+    onFragmentReady: (Navigator, SupportNavigationFragment) -> Unit,
+) {
     println("Initializing Navigation API...")
 
     if (mNavigator != null) {
@@ -68,6 +74,7 @@ fun initializeNavigationApi(activity: FragmentActivity, navigationView: Navigati
                     navigationView.getMapAsync { googleMap ->
                         println("✅ getMapAsync callback fired, setting map to follow user location")
                         googleMap.followMyLocation(GoogleMap.CameraPerspective.TILTED)
+
                     }
                 }
 
@@ -93,12 +100,6 @@ fun initializeNavigationApi(activity: FragmentActivity, navigationView: Navigati
             }
         },
     )
-}
-
-fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }
 
 private var mNavigator: Navigator? = null
@@ -152,7 +153,21 @@ private var mNavigator: Navigator? = null
     }
 }
 
-fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Navigator) {
+@SuppressLint("MissingPermission")
+fun getCurrentLocation(activity: FragmentActivity, callback: (LatLng?) -> Unit) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity)
+    fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+        val latLng = location?.let {
+            LatLng(it.latitude, it.longitude)
+        }
+        callback(latLng)
+    }.addOnFailureListener {
+        callback(null)
+    }
+}
+
+
+fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Navigator, navController: NavController) {
     if (!navFragment.isAdded) {
         println("❌ navFragment is not attached!")
         return
@@ -163,8 +178,9 @@ fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Nav
             println("✅ viewLifecycleOwner is available!")
 
             val stylingOptions = StylingOptions()
-                .primaryDayModeThemeColor(LightOrange.toArgb())
+                .primaryDayModeThemeColor(Orange.toArgb())
                 .primaryNightModeThemeColor(LightBlue.toArgb())
+                .secondaryDayModeThemeColor(LightBlue.toArgb())
                 .secondaryNightModeThemeColor(LightBlue.toArgb())
                 .headerLargeManeuverIconColor(Color.White.toArgb())
 
@@ -174,27 +190,78 @@ fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Nav
             navFragment.setSpeedLimitIconEnabled(true)
             DisplayOptions().showStopSigns(true).showTrafficLights(true)
 
-            val stopButton = android.widget.Button(navFragment.requireContext()).apply {
-                text = "Stop Trip"
-                setBackgroundColor(Orange.toArgb())
-                textSize = 16f
-                setPadding(20, 10, 20, 10)
-                setOnClickListener {
-                    println("🛑 Stopping navigation...")
-                    navigator.stopGuidance()
+            val buttonsContainer = FrameLayout(navFragment.requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 20, 0)
                 }
             }
 
+            // Container for the warning button
+            val warningBtnContainer = FrameLayout(navFragment.requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(20, 0, 20, 0)
+                }
+            }
+
+            // Container for the report button
+            val reportBtnContainer = FrameLayout(navFragment.requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 20, 0)
+                }
+            }
+
+            warningBtnContainer.addView(
+                ComposeView(navFragment.requireContext()).apply {
+                    setContent {
+                        MarkerHandlerWarning(navFragment = navFragment)
+                    }
+                }
+            )
+
+            reportBtnContainer.addView(
+                ComposeView(navFragment.requireContext()).apply {
+                    setContent {
+                        MarkerHandlerReport(navFragment = navFragment)
+                    }
+                }
+            )
+
+
+                // Create a container for the stop trip btn
             val buttonContainer = FrameLayout(navFragment.requireContext()).apply {
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
                     gravity = Gravity.BOTTOM
+                    setMargins(20, 20, 20, 20)
                 }
-                addView(stopButton)
             }
 
+            buttonContainer.addView(
+                ComposeView(navFragment.requireContext()).apply {
+                    setContent {
+                        ExitNavigation(
+                            navigator = navigator,
+                            navController = navController
+                        )
+                    }
+                    mNavigator = null
+                }
+            )
+
+            //load them in the SDK UI
+            navFragment.setCustomControl(reportBtnContainer, CustomControlPosition.BOTTOM_END_BELOW)
+            navFragment.setCustomControl(warningBtnContainer, CustomControlPosition.BOTTOM_START_BELOW)
             navFragment.setCustomControl(buttonContainer, CustomControlPosition.FOOTER)
 
             println("✅ Styling options applied successfully!")
@@ -205,5 +272,7 @@ fun customizeNavigationUI(navFragment: SupportNavigationFragment, navigator: Nav
 
     println("🔹 Finished setting up observer")
 }
+
+
 
 

@@ -23,10 +23,18 @@ import com.example.lp_logistics.R
 import com.example.lp_logistics.presentation.theme.Orange
 
 @Composable
-fun BottomBar(navController: NavController) {
+fun BottomBar(navController: NavController, isWarehouse: Boolean = false) {
     BottomAppBar(modifier = Modifier.background(color = Color.White)){
-        Row{
-            Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)){
+        Row {
+            Column(verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+                    .weight(1f)
+                    .clickable {
+                        if (!isWarehouse) navController.navigate("truck") else navController.navigate(
+                            "arrivals"
+                        )
+                    }) {
                 Icon(
                     painter = painterResource(R.drawable.delivery_truck),
                     tint = Orange,
@@ -35,48 +43,66 @@ fun BottomBar(navController: NavController) {
                 )
 
                 Text(
-                    text = "Semi-Truck",
+                    text = if (!isWarehouse) "Semi-Truck" else "Arrivals",
                     color = Orange,
                     fontSize = 12.sp
 
                 )
             }
 
-            Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-                .weight(1f)
-                .clickable {  navController.navigate("home") }){
-                Icon(
-                    painter = painterResource(R.drawable.routes),
-                    tint = Orange,
-                    contentDescription = "deliveries",
-                    modifier = Modifier.size(30.dp)
-                )
+            Column(verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        if (!isWarehouse) navController.navigate("home") else navController.navigate(
+                            "pallets"
+                        )
+                    }) {
+                if (isWarehouse) {
+                    Icon(
+                        painter = painterResource(R.drawable.pallet),
+                        tint = Orange,
+                        contentDescription = "pallet",
+                        modifier = Modifier.size(30.dp)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.routes),
+                        tint = Orange,
+                        contentDescription = "deliveries",
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
 
                 Text(
-                    text = "Deliveries",
+                    text = if (!isWarehouse) "Deliveries" else "Pallets",
                     color = Orange,
                     fontSize = 12.sp
 
                 )
             }
 
-            Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-                .weight(1f)
-                .clickable {  navController.navigate("profile") }){
-                Icon(
-                    painter = painterResource(R.drawable.person),
-                    tint = Orange,
-                    contentDescription = "Profile",
-                    modifier = Modifier.size(30.dp)
-                )
+                Column(verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { navController.navigate("profile") }) {
+                    Icon(
+                        painter = painterResource(R.drawable.person),
+                        tint = Orange,
+                        contentDescription = "Profile",
+                        modifier = Modifier.size(30.dp)
+                    )
 
-                Text(
-                    text = "Profile",
-                    color = Orange,
-                    fontSize = 12.sp
+                    Text(
+                        text = "Profile",
+                        color = Orange,
+                        fontSize = 12.sp
 
-                )
-            }
+                    )
+                }
+
         }
     }
 

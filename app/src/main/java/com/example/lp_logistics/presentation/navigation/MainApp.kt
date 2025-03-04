@@ -17,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
+import com.example.lp_logistics.presentation.screens.warehouse.arrivals.ArrivalsScreen
+import com.example.lp_logistics.presentation.screens.warehouse.pallets.CreatePalletScreen
+import com.example.lp_logistics.presentation.screens.warehouse.pallets.PalletScreen
 
 
 @Composable
@@ -29,11 +32,21 @@ fun MainApp(
     var isLoggedIn by remember { mutableStateOf(false) }
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) } // Loading state
+    var startDestination by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         user = UserManager.getUser(context)
         isLoggedIn = user != null
         isLoading = false // Loading finished
+
+    }
+
+    LaunchedEffect(user) {
+        startDestination = when {
+            isLoggedIn && user?.role == "Administrador" -> "home"
+            isLoggedIn && user?.role == "Almacenista" -> "arrivals"
+            else -> "login"
+        }
     }
 
     if (isLoading) {
@@ -48,7 +61,7 @@ fun MainApp(
     } else {
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn) "home" else "login",
+            startDestination = startDestination
         ) {
             composable("login") {
                 LoginScreen(context, navController)
@@ -64,7 +77,7 @@ fun MainApp(
             composable("navigation") {
                 if (locationPermissionGranted) {
                     //32.460812, -116.824178
-                    NavigationScreen(activity,destination = LatLng(32.460812, -116.824178)) //check if id need context or not
+                    NavigationScreen(activity,destination = LatLng(32.460812, -116.824178), navController) //check if id need context or not
                 } else {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -74,6 +87,18 @@ fun MainApp(
                         Text("Location permission is required for navigation.")
                     }
                 }
+            }
+
+            composable("arrivals"){
+                ArrivalsScreen(navController)
+            }
+
+            composable("pallets"){
+                PalletScreen(navController)
+            }
+
+            composable("create-pallet"){
+                CreatePalletScreen(navController)
             }
         }
     }

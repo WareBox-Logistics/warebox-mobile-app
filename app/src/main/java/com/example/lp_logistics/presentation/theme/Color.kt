@@ -15,3 +15,8 @@ val LightGray = Color(0xFFD5CDCD)
 val Orange = Color(0xFFFF731D)
 val LightOrange = Color(0xFFFFA975)
 val DarkGray = Color(0xFF555A66)
+
+val Warning = Color(0xFFFBA518)
+val Report = Color(0xFFE52020)
+val LightCreme = Color(0xFFFFF2EA)
+val Create = Color(0xFFB0EF8F)
