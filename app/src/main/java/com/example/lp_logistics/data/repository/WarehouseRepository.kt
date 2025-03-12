@@ -19,23 +19,35 @@ import retrofit2.HttpException
 
 class WarehouseRepository @Inject constructor(private val apiService: ApiService) {
 
-    suspend fun createBox(token: String, qty: Int, weight: Float, volume: Float, pallet: Int, inventory: Int): Unit = withContext(
+    suspend fun createBox(token: String, qty: Int, weight: Float, volume: Float, pallet: Int, product: Int): Unit = withContext(
         Dispatchers.IO) {
         try{
-            apiService.createBox("Bearer $token", CreateBoxRequest(qty, weight, volume, pallet, inventory))
+            apiService.createBox("Bearer $token", CreateBoxRequest(qty, weight, volume, pallet, product))
         } catch(e: HttpException) {
             println("HTTP Error: ${e.code()} - ${e.message()}")
         }
     }
 
-    suspend fun createPallet(token: String, company: Int, warehouse: Int, weight: Float, volume: Float, status: String, verified: Boolean): Unit = withContext(
-        Dispatchers.IO) {
-        try{
-            apiService.createPallet("Bearer $token", CreatePalletRequest(company, warehouse, weight, volume, status, verified))
-        }catch (e:HttpException){
+    suspend fun createPallet(
+        token: String,
+        company: Int,
+        warehouse: Int,
+        weight: Float,
+        volume: Float,
+        status: String,
+        verified: Boolean
+    ): PalletResponse = withContext(Dispatchers.IO) {
+        try {
+            apiService.createPallet(
+                "Bearer $token",
+                CreatePalletRequest(company, warehouse, weight, volume, status, verified)
+            )
+        } catch (e: HttpException) {
             println("HTTP Error: ${e.code()} - ${e.message()}")
+            throw e // Rethrow the exception or handle it as necessary
         }
     }
+
 
     suspend fun getWarehouse(token: String, id: Int): WarehouseResponse{
         return try {
@@ -73,6 +85,7 @@ class WarehouseRepository @Inject constructor(private val apiService: ApiService
     suspend fun getPallet(token: String, id: Int): PalletResponse{
         return try {
             withContext(Dispatchers.IO) {
+                println("Getting pallet with id here: $id")
                 apiService.getPallet("Bearer $token", id)
             }
             } catch (e: HttpException) {

@@ -76,8 +76,8 @@ fun MainApp(
 
             composable("navigation") {
                 if (locationPermissionGranted) {
-                    //32.460812, -116.824178
-                    NavigationScreen(activity,destination = LatLng(32.460812, -116.824178), navController) //check if id need context or not
+                    //32.380028, -117.069655
+                    NavigationScreen(activity,destination = LatLng(32.380028, -117.069655), navController) //check if id need context or not
                 } else {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -97,9 +97,15 @@ fun MainApp(
                 PalletScreen(navController)
             }
 
-            composable("create-pallet"){
-                CreatePalletScreen(navController)
+            composable(
+                "create-pallet?palletIDNav={palletIDNav}&creating={creating}"
+            ) { backStackEntry ->
+                val creating = backStackEntry.arguments?.getString("creating")?.toBoolean() ?: false
+                val palletIDNav = backStackEntry.arguments?.getString("palletIDNav")?.toInt() ?: 0
+                CreatePalletScreen(navController, creating, palletIDNav)
             }
+
+
         }
     }
 }

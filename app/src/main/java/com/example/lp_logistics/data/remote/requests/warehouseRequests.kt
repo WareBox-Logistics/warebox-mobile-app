@@ -5,7 +5,7 @@ data class CreateBoxRequest(
     val weight: Float,
     val volume: Float,
     val pallet: Int,
-    val inventory: Int
+    val product: Int
 )
 
 data class CreatePalletRequest(

@@ -53,9 +53,9 @@ fun SelectableDropdown(
     ) {
         Text(
             text = selectedText,
-            fontSize = 12.sp,
-            color = Color.Gray, // LightGray
-            fontWeight = FontWeight.SemiBold,
+            fontSize = if(selectedText == "Select a Company" || selectedText == "Select a Warehouse") 12.sp else 14.sp,
+            color = if (selectedText == "Select a Company" || selectedText == "Select a Warehouse") Color.Gray else Color.Black,
+            fontWeight = if (selectedText == "Select a Company" || selectedText == "Select a Warehouse") FontWeight.SemiBold else FontWeight.Normal,
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .padding(start = 10.dp)

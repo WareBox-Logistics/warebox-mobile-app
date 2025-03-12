@@ -35,7 +35,19 @@ data class SimpleProductResponse(
     val id: Int,
     val name: String,
     val sku: String
-)
+){
+    fun doesMatchSearchQuery(query: String): Boolean {
+        val matchingCombinations = listOf(
+            sku,
+            name,
+            "${name.first()}"
+        )
+
+        return matchingCombinations.any {
+            it.contains(query, ignoreCase = true)
+        }
+    }
+}
 
 data class Category(
     val id: Int,
@@ -43,22 +55,25 @@ data class Category(
     val description: String,
 )
 
+
 data class PalletResponse(
     val id: Int,
-    val company: CompanyResponse,
-    val warehouse: WarehouseResponse,
-    val weight: Float,
-    val volume: Float,
-    val pallet: String
+    val company: String,
+    val warehouse: String,
+    val weight: String,
+    val volume: String,
+    val status: String,
+    val boxes: List<BoxResponse>,
 )
 
-data class BoxResponse(
+
+data class BoxResponse(//no pallet info
     val id: Int,
     val qty: Int,
-    val weight: Float,
-    val volume: Float,
-    val pallet: PalletResponse,
-    val product: ProductResponse
+    val weight: String,
+    val volume: String,
+    val pallet: Int,
+    val product:  String //ProductResponse
 )
 
 data class Companies(

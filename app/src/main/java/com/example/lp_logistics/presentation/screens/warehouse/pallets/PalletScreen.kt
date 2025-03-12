@@ -54,7 +54,7 @@ fun PalletScreen(navController: NavController) {
 
                                 Spacer(modifier = Modifier.padding(12.dp))
 
-                                IconMenuBtn(painterResource(R.drawable.pallet) , "Create Pallet", onClick = {navController.navigate("create-pallet")})
+                                IconMenuBtn(painterResource(R.drawable.pallet) , "Create Pallet", onClick = {navController.navigate("create-pallet?creating=true")})
 
                             }
                             Spacer(modifier = Modifier.padding(12.dp))

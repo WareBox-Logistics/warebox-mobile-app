@@ -51,7 +51,7 @@ interface ApiService {
     suspend fun createPallet(
         @Header("Authorization") token: String,
         @Body request: CreatePalletRequest
-    )
+    ): PalletResponse
 
     //get warehouse
     @GET("warehouse/{id}")
