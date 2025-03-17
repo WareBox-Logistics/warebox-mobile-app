@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.material3)
+    implementation(libs.core.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -108,12 +109,16 @@ dependencies {
     implementation ("androidx.compose.material:material-icons-extended:1.4.3")
 
     //maps API
+// Google Maps SDK these 3 are xtra
+    implementation ("com.google.android.gms:play-services-maps:18.1.0")
+    implementation ("com.google.maps.android:maps-compose:2.11.1")
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.4")
 
     implementation ("com.google.android.gms:play-services-location:21.0.1")
 
     //navigation SDK
-    implementation(libs.navigation)
-    api(libs.navigation)
+//    implementation(libs.navigation)
+//    api(libs.navigation)
 
     //permissions
     implementation ("com.google.accompanist:accompanist-permissions:0.33.2-alpha")

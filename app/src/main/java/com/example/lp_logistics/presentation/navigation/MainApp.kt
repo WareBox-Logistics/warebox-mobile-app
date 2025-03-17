@@ -8,7 +8,7 @@ import com.example.lp_logistics.data.local.UserManager
 import com.example.lp_logistics.data.remote.requests.User
 import com.example.lp_logistics.presentation.screens.home.HomeScreen
 import com.example.lp_logistics.presentation.screens.login.LoginScreen
-import com.example.lp_logistics.presentation.screens.navigation.NavigationScreen
+//import com.example.lp_logistics.presentation.screens.navigation.NavigationScreen
 import com.example.lp_logistics.presentation.screens.profile.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
 import androidx.compose.material3.CircularProgressIndicator // Import for loading indicator
@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
+import com.example.lp_logistics.presentation.screens.navigationV2.MapScreen
 import com.example.lp_logistics.presentation.screens.warehouse.arrivals.ArrivalsScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.CreatePalletScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.PalletScreen
@@ -75,18 +76,19 @@ fun MainApp(
             }
 
             composable("navigation") {
-                if (locationPermissionGranted) {
-                    //32.380028, -117.069655
-                    NavigationScreen(activity,destination = LatLng(32.380028, -117.069655), navController) //check if id need context or not
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Location permission is required for navigation.")
-                    }
-                }
+//                if (locationPermissionGranted) {
+//                    //32.380028, -117.069655
+//                    NavigationScreen(activity,destination = LatLng(32.380028, -117.069655), navController) //check if id need context or not
+//                } else {
+//                    Column(
+//                        modifier = Modifier.fillMaxSize(),
+//                        verticalArrangement = Arrangement.Center,
+//                        horizontalAlignment = Alignment.CenterHorizontally
+//                    ) {
+//                        Text("Location permission is required for navigation.")
+//                    }
+//                }
+                MapScreen(navController)
             }
 
             composable("arrivals"){
