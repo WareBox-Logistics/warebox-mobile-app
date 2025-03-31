@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "117226514237",
+    "firebase_url": "https://warebox-86369-default-rtdb.firebaseio.com",
+    "project_id": "warebox-86369",
+    "storage_bucket": "warebox-86369.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:117226514237:android:848dc48750b5265b43c754",
+        "android_client_info": {
+          "package_name": "com.example.lp_logistics"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0cMpYgEJdLcqf9r0LMorwMcmnLJnxvBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

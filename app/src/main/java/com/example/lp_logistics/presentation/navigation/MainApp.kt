@@ -1,6 +1,7 @@
 package com.example.lp_logistics.presentation.navigation
 
-import androidx.compose.material3.Text  // Import for Text
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -8,21 +9,25 @@ import com.example.lp_logistics.data.local.UserManager
 import com.example.lp_logistics.data.remote.requests.User
 import com.example.lp_logistics.presentation.screens.home.HomeScreen
 import com.example.lp_logistics.presentation.screens.login.LoginScreen
-//import com.example.lp_logistics.presentation.screens.navigation.NavigationScreen
 import com.example.lp_logistics.presentation.screens.profile.ProfileScreen
-import com.google.android.gms.maps.model.LatLng
 import androidx.compose.material3.CircularProgressIndicator // Import for loading indicator
 import androidx.compose.foundation.layout.* // Import for layout modifiers
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.lp_logistics.presentation.components.QR.Camera.ScannerNavigator
 import com.example.lp_logistics.presentation.screens.navigationV2.MapScreen
+import com.example.lp_logistics.presentation.screens.routes.SelectedRouteScreen
 import com.example.lp_logistics.presentation.screens.warehouse.arrivals.ArrivalsScreen
+import com.example.lp_logistics.presentation.screens.warehouse.pallets.BoxInfoScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.CreatePalletScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.PalletScreen
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainApp(
     navController: androidx.navigation.NavHostController,
@@ -44,7 +49,7 @@ fun MainApp(
 
     LaunchedEffect(user) {
         startDestination = when {
-            isLoggedIn && user?.role == "Administrador" -> "home"
+            isLoggedIn && user?.role == "Chofer" -> "home"
             isLoggedIn && user?.role == "Almacenista" -> "arrivals"
             else -> "login"
         }
@@ -75,20 +80,11 @@ fun MainApp(
                 ProfileScreen(navController, context)
             }
 
-            composable("navigation") {
-//                if (locationPermissionGranted) {
-//                    //32.380028, -117.069655
-//                    NavigationScreen(activity,destination = LatLng(32.380028, -117.069655), navController) //check if id need context or not
-//                } else {
-//                    Column(
-//                        modifier = Modifier.fillMaxSize(),
-//                        verticalArrangement = Arrangement.Center,
-//                        horizontalAlignment = Alignment.CenterHorizontally
-//                    ) {
-//                        Text("Location permission is required for navigation.")
-//                    }
-//                }
-                MapScreen(navController)
+            composable("navigation/{routeJson}",
+                arguments = listOf(navArgument("routeJson") { type = NavType.StringType })) { backStackEntry ->
+                val routeJson = backStackEntry.arguments?.getString("routeJson") ?: ""
+//
+                MapScreen(navController, routeJson)
             }
 
             composable("arrivals"){
@@ -107,7 +103,28 @@ fun MainApp(
                 CreatePalletScreen(navController, creating, palletIDNav)
             }
 
+            composable("qr-scanner?isPallet={isPallet}"){ backStackEntry ->
+                val isPallet = backStackEntry.arguments?.getString("isPallet")?.toBoolean() ?: false
+                    ScannerNavigator(navController = navController, isPallet = isPallet)
+                }
+
+            composable("box-info?boxID={boxID}"){ backStackEntry ->
+                val boxID = backStackEntry.arguments?.getString("boxID")?.toInt() ?: 0
+                println("Box ID: $boxID")
+                BoxInfoScreen(boxID, navController)
+            }
+
+
+            composable("selected-delivery?deliveryID={deliveryID}"){ backStackEntry ->
+                val deliveryID = backStackEntry.arguments?.getString("deliveryID")?.toInt() ?: 0
+                println("Box ID: $deliveryID")
+                SelectedRouteScreen( navController, deliveryID)
+            }
+
 
         }
     }
 }
+
+
+

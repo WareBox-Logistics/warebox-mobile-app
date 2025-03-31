@@ -1,6 +1,5 @@
 package com.example.lp_logistics.presentation.components
 
-import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,12 +22,15 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lp_logistics.R
+import com.example.lp_logistics.data.remote.responses.RouteFromDelivery
+import com.example.lp_logistics.data.remote.responses.Trailer
+import com.example.lp_logistics.data.remote.responses.Truck
 import com.example.lp_logistics.presentation.theme.LightBlue
+import com.example.lp_logistics.presentation.theme.LightCreme
 import com.example.lp_logistics.presentation.theme.LightGray
 import com.example.lp_logistics.presentation.theme.Orange
 
@@ -40,7 +42,8 @@ fun TripsCard(
     time: String,
     image: String,
     disabled: Boolean = false,
-    navController: NavController = NavController(LocalContext.current)
+    navController: NavController = NavController(LocalContext.current),
+    deliveryID : Int = 0
 ) {
     val imageResId = when (image) {
         "1" -> R.drawable.truck1
@@ -57,8 +60,8 @@ fun TripsCard(
         modifier = Modifier
             .height(125.dp)
             .fillMaxWidth()
-            .clickable { navController.navigate("navigation") } // redo this better in the future
-            .background(color = if (disabled) LightGray else Color.White, shape = RoundedCornerShape(10.dp)),
+            .clickable { navController.navigate("selected-delivery?deliveryID=${deliveryID}") }
+            .background(color = if (disabled) LightGray else LightCreme, shape = RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center,
     ){
         Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()){
@@ -100,15 +103,3 @@ fun TripsCard(
     }
 }
 
-//@Preview
-//@Composable
-//private fun PreviewTripsCard() {
-//    TripsCard(
-//        origin = "Nairobi",
-//        destination = "Nakuru",
-//        date = "January 10th",
-//        time = "10:00 AM",
-//        image = "1",
-//        disabled = true
-//    )
-//}

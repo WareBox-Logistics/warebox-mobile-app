@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lp_logistics.data.local.UserManager
 import com.example.lp_logistics.data.remote.requests.CreateBoxRequest
+import com.example.lp_logistics.data.remote.responses.BoxResponseWithPallet
 import com.example.lp_logistics.data.remote.responses.CompanyResponse
 import com.example.lp_logistics.data.remote.responses.PalletResponse
 import com.example.lp_logistics.data.remote.responses.SimpleProductResponse
@@ -62,6 +63,9 @@ class CreatePalletViewModel @Inject constructor(private val warehouseRepository:
 
     private val _isCreating = mutableStateOf(false)
     val isCreating: State<Boolean> get() = _isCreating
+
+    private val _singleBox = mutableStateOf<BoxResponseWithPallet?>(null)
+    val singleBox: State<BoxResponseWithPallet?> = _singleBox
 
     fun setCreating(isCreating: Boolean) {
         _isCreating.value = isCreating
@@ -151,7 +155,9 @@ private fun createBox(
         viewModelScope.launch {
             val token = UserManager.getToken(context).toString()
             try{
-                warehouseRepository.getBox(token, id)
+                val box = warehouseRepository.getBox(token, id)
+                _singleBox.value = box
+                println("Box: ${_singleBox.value}")
             } catch (e: Exception){
                 println("Error getting box: ${e.message}")
             }

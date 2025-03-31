@@ -49,7 +49,12 @@ fun PalletScreen(navController: NavController) {
                             Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically ) {
 
                                 IconMenuBtn(painterResource(R.drawable.pallet) , "Scan Pallet", onClick = {
-                                    navController.navigate("create-pallet")
+                                    val isPallet = true
+                                    try{
+                                    navController.navigate("qr-scanner?isPallet=$isPallet")
+                                    }catch (e: Exception){
+                                        println("NAVIGATION ERROR $e")
+                                    }
                                 })
 
                                 Spacer(modifier = Modifier.padding(12.dp))
@@ -58,7 +63,14 @@ fun PalletScreen(navController: NavController) {
 
                             }
                             Spacer(modifier = Modifier.padding(12.dp))
-                            IconMenuBtn(painterResource(R.drawable.box) , "Scan Box")
+                            IconMenuBtn(painterResource(R.drawable.box) , "Scan Box", onClick = {
+                                val isPallet = false
+                                try{
+                                    navController.navigate("qr-scanner?isPallet=$isPallet")
+                                }catch (e: Exception) {
+                                    println("NAVIGATION ERROR $e")
+                                }
+                            })
 
                         }
 

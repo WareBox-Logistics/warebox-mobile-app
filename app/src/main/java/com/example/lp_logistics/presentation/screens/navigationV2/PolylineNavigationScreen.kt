@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CarCrash
+import androidx.compose.material.icons.rounded.Dangerous
+import androidx.compose.material.icons.rounded.LocalPolice
+import androidx.compose.material.icons.rounded.MinorCrash
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -37,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.lp_logistics.domain.model.FeatureCollection
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices.*
 import com.google.android.gms.maps.model.LatLng
@@ -47,14 +51,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import com.example.lp_logistics.domain.model.Coordinate
+import com.example.lp_logistics.domain.model.PolylinePath
+import com.example.lp_logistics.domain.model.TollBooth
 import com.example.lp_logistics.presentation.components.BottomSheet
 import com.example.lp_logistics.presentation.theme.LightBlue
 import com.example.lp_logistics.presentation.theme.LightCreme
 import com.example.lp_logistics.presentation.theme.LightOrange
 import com.example.lp_logistics.presentation.theme.Orange
+import com.example.lp_logistics.presentation.theme.OrangeWarning
+import com.example.lp_logistics.presentation.theme.Report
 import com.example.lp_logistics.presentation.theme.Warning
 import com.example.lp_logistics.presentation.theme.WarningText
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
 // Google Maps SDK for Android
 import com.google.android.gms.maps.model.CameraPosition
@@ -70,89 +81,100 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
-    navController: androidx.navigation.NavHostController,
+    navController: NavHostController,
+    routeJson: String,
     viewModel: RouteViewModel = hiltViewModel(),
 ) {
-
-    val routeData by viewModel.routeData.observeAsState()
+    // Observe LiveData from ViewModel
+    val polylinePaths by viewModel.polylinePaths.observeAsState()
+    val routeDirections by viewModel.routeDirections.observeAsState()
     val currentInstruction by viewModel.instruction.observeAsState()
-    var isLoading by remember { mutableStateOf(true) }
-
     val navigationStarted by viewModel.navigationStarted.observeAsState()
-
-    val cameraPositionState = rememberCameraPositionState {
-        routeData?.features?.firstOrNull()?.properties?.waypoints?.firstOrNull()?.let { firstWaypoint ->
-            position = CameraPosition.fromLatLngZoom(
-                LatLng(firstWaypoint.location[1], firstWaypoint.location[0]),
-                15f
-            )
-            isLoading = false
-        }
-    }
-
-    val coroutineScope =rememberCoroutineScope()
-    var mapLoaded by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val fusedLocationProviderClient = getFusedLocationProviderClient(context)
     val currentLocation by viewModel.currentLocation.observeAsState()
     val isOffRoute by viewModel.isOffRoute.observeAsState()
+    val origin by viewModel.origin.observeAsState()
+    val destination by viewModel.destination.observeAsState()
+    val progress by viewModel.progress.observeAsState(0f)
 
+    // UI State
+    var isLoading by remember { mutableStateOf(true) }
+    var mapLoaded by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-
-    LaunchedEffect(Unit) {
-        viewModel.loadRoute()
+    Log.d("MapScreen", "polylinePath: $polylinePaths")
+    // Camera Position State
+    val cameraPositionState = rememberCameraPositionState {
+        polylinePaths?.firstOrNull()?.coordinates?.takeIf { it.isNotEmpty() }?.firstOrNull()?.let { firstCoordinate ->
+            position = CameraPosition.fromLatLngZoom(
+                LatLng(firstCoordinate.lat, firstCoordinate.lng),
+                15f
+            )
+        }
     }
 
-    LaunchedEffect(routeData) {
-        routeData?.features?.firstOrNull()?.properties?.waypoints?.firstOrNull()?.let { firstWaypoint ->
+    // Coroutine Scope
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val fusedLocationProviderClient = getFusedLocationProviderClient(context)
+
+    // Load route when the screen is launched
+    LaunchedEffect(Unit) {
+        viewModel.loadRoute(routeJson)
+    }
+
+    // Update camera position when polylinePath is loaded
+    LaunchedEffect(polylinePaths) {
+        println("Origin: ${viewModel.origin.value}")
+        println("Destination: ${viewModel.destination.value}")
+        polylinePaths?.firstOrNull()?.coordinates?.firstOrNull()?.let { firstCoordinate ->
             cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                LatLng(firstWaypoint.location[1], firstWaypoint.location[0]),
+                LatLng(firstCoordinate.lat, firstCoordinate.lng),
                 15f
             )
             isLoading = false
         }
     }
+    Log.d("MapScreen", "routeDirections: $routeDirections")
 
     LaunchedEffect(currentLocation) {
-        currentLocation?.let { location ->
-            coroutineScope.launch {
-                cameraPositionState.animate(
-                    update = CameraUpdateFactory.newCameraPosition(
-                        CameraPosition(
-                            LatLng(location.latitude, location.longitude),
-                            19f,
-                            60f,
-                            0f
-                        )
-                    ),
-                    durationMs = 1000
-                )
+        if (currentLocation != null) {
+            currentLocation?.let { location ->
+                coroutineScope.launch {
+                    cameraPositionState.animate(
+                        update = CameraUpdateFactory.newCameraPosition(
+                            CameraPosition(
+                                LatLng(location.latitude, location.longitude),
+                                19f,
+                                60f,
+                                0f
+                            )
+                        ),
+                        durationMs = 1000
+                    )
+                    viewModel.updateProgress(location)
+                }
             }
+        } else {
+            Log.w("MapScreen", "currentLocation is null, skipping camera update.")
         }
     }
 
 
-
+    // Main UI
     Column(modifier = Modifier.fillMaxSize()) {
         // Header for navigation instructions
-        Box( modifier = Modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .background(Orange)
-            .padding(16.dp),
-            contentAlignment = Alignment.Center){
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(Orange)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
         }
         Box(
             modifier = Modifier
@@ -170,132 +192,62 @@ fun MapScreen(
             )
         }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        routeData?.let {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(Orange))
-            } else {
-                GoogleMapView(
-                    routeData = it,
-                    onMapLoaded = { mapLoaded = true },
-                    fusedLocationProviderClient = fusedLocationProviderClient,
-                    cameraPositionState = cameraPositionState
-                )
-            }
-        }
-
-        // Button to Start Trip
-        if (mapLoaded) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                ,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ){
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ){
-                    Spacer(Modifier.weight(1f))
-                    FloatingActionButton(
-                        onClick = {
-                            showBottomSheet = true
-                        },
-                        modifier = Modifier
-                            .padding(16.dp),
-                        containerColor = Warning,
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(50.dp)
-                    ) {
-                        Icon(
-                            Icons.Rounded.Warning,
-                            contentDescription = "Warning",
-                            tint = Color.White,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
+        // Map and Buttons
+        Box(modifier = Modifier.fillMaxSize()) {
+            polylinePaths?.let { paths ->
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier
+                        .align(Alignment.Center)
+                        .background(Orange))
+                } else {
+                    GoogleMapView(
+                        polylinePaths = paths,
+                        origin = origin,
+                        destination = destination,
+                        tollBooths = routeDirections?.tollBooths ?: emptyList(),
+                        onMapLoaded = { mapLoaded = true },
+                        fusedLocationProviderClient = fusedLocationProviderClient,
+                        cameraPositionState = cameraPositionState
+                    )
                 }
-
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .padding(16.dp),
-                onClick = {
-                    println("Clicked Start Trip")
-                    if (!navigationStarted!!) {
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_FINE_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            fusedLocationProviderClient.lastLocation
-                                .addOnSuccessListener { location ->
-                                    if (location != null) {
-                                        coroutineScope.launch {
-                                            try {
-                                                // ✅ Animate camera to user's location with tilt
-                                                cameraPositionState.animate(
-                                                    update = CameraUpdateFactory.newCameraPosition(
-                                                        CameraPosition(
-                                                            LatLng(
-                                                                location.latitude,
-                                                                location.longitude
-                                                            ),
-                                                            19f, // Zoom closer
-                                                            60f, // Tilt the camera
-                                                            0f
-                                                        )
-                                                    ),
-                                                    durationMs = 1000
-                                                )
-
-                                                // ✅ Start tracking after camera animation
-                                                viewModel.startTracking(context)
-                                            } catch (e: SecurityException) {
-                                                Log.e(
-                                                    "StartTrip",
-                                                    "Permission denied: ${e.message}"
-                                                )
-                                            } catch (e: Exception) {
-                                                Log.e(
-                                                    "StartTrip",
-                                                    "Error getting location: ${e.message}"
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        Log.e("StartTrip", "Location is null")
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e("StartTrip", "Failed to get location: ${e.message}")
-                                }
-                        } else {
-                            // Request permission if not granted
-
-                        }
-                    }else{
-                        //logic to close the navigation
-                        viewModel.stopNavigation()
-                        navController.navigate("home")
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = LightOrange),
-            ) {
-                Text(
-                    text = if(!navigationStarted!!) "Start Trip" else "Exit Navigation",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
 
-            //btn to recalculate route
-            if(isOffRoute == true){
+            // Button to Start Trip
+            if (mapLoaded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Spacer(Modifier.weight(1f))
+                        FloatingActionButton(
+                            onClick = { showBottomSheet = true },
+                            modifier = Modifier.padding(16.dp),
+                            containerColor = Warning,
+                            contentColor = Color.White,
+                            shape = RoundedCornerShape(50.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Warning,
+                                contentDescription = "Warning",
+                                tint = Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .padding(horizontal = 16.dp),
+                    )
 
                     Button(
                         modifier = Modifier
@@ -303,118 +255,280 @@ fun MapScreen(
                             .height(80.dp)
                             .padding(16.dp),
                         onClick = {
-
+                            if (navigationStarted == false) {//its not activating the navigation
+                                println("Starting navigation")
+                                if (ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.ACCESS_FINE_LOCATION
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    fusedLocationProviderClient.lastLocation
+                                        .addOnSuccessListener { location ->
+                                            if (location != null) {
+                                                coroutineScope.launch {
+                                                    cameraPositionState.animate(
+                                                        update = CameraUpdateFactory.newCameraPosition(
+                                                            CameraPosition(
+                                                                LatLng(location.latitude, location.longitude),
+                                                                19f,
+                                                                60f,
+                                                                0f
+                                                            )
+                                                        ),
+                                                        durationMs = 1000
+                                                    )
+                                                    viewModel.startTracking(context)
+                                                }
+                                            }
+                                        }
+                                }
+                            } else {
+                                println("Stopping navigation")
+                                viewModel.stopNavigation()
+                                navController.navigate("home")
+                            }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Warning),
+                        colors = ButtonDefaults.buttonColors(containerColor = LightOrange),
                     ) {
                         Text(
-                            text = "Recalculate Route",
-                            color = WarningText,
+                            text = if (navigationStarted == true) "Stop Trip" else "Start Trip", // cahnges ere
+                            color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
+
+                    // Recalculate Route Button
+                    if (isOffRoute == true) {
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .padding(16.dp),
+                            onClick = {
+                                // TODO: Implement recalculate route logic
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Warning),
+                        ) {
+                            Text(
+                                text = "Recalculate Route",
+                                color = WarningText,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
-
             }
-
         }
-    }
+
+        // Bottom Sheet
         if (showBottomSheet) {
             BottomSheet(
                 sheetState = sheetState,
                 onDismissRequest = { showBottomSheet = false },
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .background(LightCreme,RoundedCornerShape(10.dp)),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ){
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ){
-                        //icons and text for basic things that could happen
+                Text(
+                    text = "Quick Notification Action",
+                    color = Orange,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(
+                        top = 20.dp,
+                        bottom = 5.dp
+                    )
+
+                )
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .padding(16.dp),
+                            onClick = {
+                                viewModel.createReport(latitude = currentLocation!!.latitude.toString(), longitude = currentLocation!!.longitude.toString(), problem = 2, issue = true, description = "Police Checkpoint")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Warning),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.LocalPolice,
+                                    contentDescription = "Warning",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
+
+                                )
+
+                                Spacer(modifier=Modifier.weight(1f))
+
+                                Text(
+                                    text = "Police Checkpoint",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .padding(16.dp),
+                            onClick = {
+                                viewModel.createReport(latitude = currentLocation!!.latitude.toString(), longitude = currentLocation!!.longitude.toString(), problem = 3, issue = true, description = "Vehicle Crash Up ahead")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Orange),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.MinorCrash,
+                                    contentDescription = "crash",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
+
+                                )
+                                Spacer(modifier=Modifier.weight(1f))
+
+                                Text(
+                                    text = "Vehicle Crash Up ahead",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .padding(16.dp),
+                            onClick = {
+                                viewModel.createReport(latitude = currentLocation!!.latitude.toString(), longitude = currentLocation!!.longitude.toString(), problem = 5, issue = false, description = "Truck breakdown")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Orange),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Dangerous,
+                                    contentDescription = "crash",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
+
+                                )
+                                Spacer(modifier=Modifier.weight(1f))
+
+                                Text(
+                                    text = "Truck breakdown",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .padding(16.dp),
+                            onClick = {
+                                viewModel.createReport(latitude = currentLocation!!.latitude.toString(), longitude = currentLocation!!.longitude.toString(), problem = 4, issue = false, description = "I have crashed")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Report),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.CarCrash,
+                                    contentDescription = "crash",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
+
+                                )
+                                Spacer(modifier=Modifier.weight(1f))
+
+                                Text(
+                                    text = "I have crashed",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }
-    }
 
+    }
 }
 
 @Composable
 fun GoogleMapView(
-    routeData: FeatureCollection,
+    polylinePaths: List<PolylinePath>,
+    origin: Coordinate?,
+    destination: Coordinate?,
+    tollBooths: List<TollBooth>,
     onMapLoaded: () -> Unit,
     fusedLocationProviderClient: FusedLocationProviderClient,
     cameraPositionState: CameraPositionState,
 ) {
-
-    // Extract polyline points
-    val polylinePoints = routeData.features[0].geometry.coordinates[0].map {
-        LatLng(it[1], it[0]) // Convert to LatLng
-    }
-
-    // Extract waypoints
-    val waypoints = routeData.features[0].properties.waypoints
-
-    // Render GoogleMap Composable
+    // Render GoogleMap
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = true),
         uiSettings = MapUiSettings(compassEnabled = true, zoomControlsEnabled = true),
-        onMapLoaded = {
-            onMapLoaded()
-        }
+        onMapLoaded = { onMapLoaded() }
     ) {
-        // Add Polyline
-        Polyline(
-            points = polylinePoints,
-            color = Color.Blue,
-            width = 10f
-        )
-
-        // Add Waypoints as Markers
-        waypoints.forEach { waypoint ->
-            val position = LatLng(waypoint.location[1], waypoint.location[0])
-            Marker(
-                state = MarkerState(position = position),
-                title = "Waypoint ${waypoint.original_index}",
-                snippet = "Lat: ${position.latitude}, Lng: ${position.longitude}"
+        // Add Polylines
+        polylinePaths.forEach { polylinePath ->
+            val polylinePoints = polylinePath.coordinates.map {
+                LatLng(it.lat, it.lng)
+            }
+            Polyline(
+                points = polylinePoints,
+                color = Color.Blue,
+                width = 10f
             )
         }
+
+        tollBooths.forEach { tollBooth ->
+            Marker(
+                state = MarkerState(position = LatLng(tollBooth.coordinate.lat, tollBooth.coordinate.lng)),
+                title = "Toll Booth",
+                snippet = "Cost: ${tollBooth.cost} pesos",
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+            )
+        }
+
+        Marker(
+            state = MarkerState(position = LatLng(origin!!.lat, origin.lng)),
+            title = "Origin",
+            snippet = "Origin",
+            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)
+        )
+
+        Marker(
+            state = MarkerState(position = LatLng(destination!!.lat, destination.lng)),
+            title = "Destination",
+            snippet = "Destination",
+            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)
+        )//skibidi
     }
-}
-
-
-
-
-
-
-
-
-
-fun calculateDistance(start: LatLng, end: LatLng): Double {
-    val earthRadius = 6371e3 // Earth's radius in meters
-
-    // Convert latitude and longitude from degrees to radians
-    val startLatRad = Math.toRadians(start.latitude)
-    val endLatRad = Math.toRadians(end.latitude)
-    val deltaLat = Math.toRadians(end.latitude - start.latitude)
-    val deltaLon = Math.toRadians(end.longitude - start.longitude)
-
-    // Haversine formula
-    val a = sin(deltaLat / 2).pow(2) +
-            cos(startLatRad) * cos(endLatRad) *
-            sin(deltaLon / 2).pow(2)
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    return earthRadius * c // Result in meters
 }
 

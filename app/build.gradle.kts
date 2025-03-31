@@ -1,9 +1,11 @@
 import java.util.Properties
 
 plugins {
+    id("com.google.gms.google-services")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.dagger.hilt)
+    id("org.jetbrains.kotlin.plugin.serialization")
     kotlin("kapt")
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
@@ -124,6 +126,23 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-permissions:0.33.2-alpha")
 
     implementation("androidx.fragment:fragment-ktx:1.6.2")
+
+    implementation ("com.google.zxing:core:3.5.1")
+
+    // For PDF generation
+    implementation ("com.itextpdf:itext7-core:7.2.3")
+
+    //For QR reading
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.2")
+
+    implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+    // Firebase Realtime Database (Kotlin support)
+    implementation("com.google.firebase:firebase-database-ktx")
+
 }
 
 secrets {

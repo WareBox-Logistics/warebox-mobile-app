@@ -1,7 +1,9 @@
 package com.example.lp_logistics.presentation.screens.routes
 
-import androidx.compose.foundation.Image
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,124 +15,288 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.lp_logistics.R
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.example.lp_logistics.presentation.components.DateTimeUtils
+import com.example.lp_logistics.presentation.components.OrangeTextFields
 import com.example.lp_logistics.presentation.components.TopBar
 import com.example.lp_logistics.presentation.components.TripsCard
+import com.example.lp_logistics.presentation.screens.home.HomeViewModel
+import com.example.lp_logistics.presentation.theme.Create
 import com.example.lp_logistics.presentation.theme.LightBlue
+import com.example.lp_logistics.presentation.theme.LightCreme
 import com.example.lp_logistics.presentation.theme.LightGray
+import com.example.lp_logistics.presentation.theme.LightOrange
 import com.example.lp_logistics.presentation.theme.Orange
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.net.URLEncoder
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun SelectedRouteScreen(modifier: Modifier = Modifier) {
+fun SelectedRouteScreen(navController: NavController, deliveryID: Int, viewModel: HomeViewModel = hiltViewModel()) {
+
+    val context = navController.context
+    val delivery by viewModel.delivery
+    val loading by viewModel.loading.collectAsState()
+    val truckParkingLot by viewModel.parkingLotResponse.observeAsState()
+    val trailerParkingLot by viewModel.parkingLotResponseTrailer.observeAsState()
+
+    val spotCodeStateTruck = remember { mutableStateOf("") }
+    val spotCodeStateTrailer = remember { mutableStateOf("") }
+    val trailerPlates = remember { mutableStateOf("") }
+    val truckPlates = remember { mutableStateOf("") }
+
+    val routeJson = remember(delivery) {
+        delivery?.route?.let { route ->
+            Json.encodeToString(route)
+        } ?: ""
+    }
+
+
+
+
+    val formattedTime = remember(delivery) {
+        delivery?.shipping_date?.let { DateTimeUtils.formatToTime(it) } ?: "Loading..."
+    }
+
+    val formattedDate = remember(delivery) {
+        delivery?.shipping_date?.let { DateTimeUtils.formatToDate(it) } ?: "Loading..."
+    }
+
+
+    LaunchedEffect(Unit){
+        println("Loading delivery...")
+        viewModel.getDelivery(deliveryID, context)
+    }
+
+    LaunchedEffect(delivery) {
+        if (delivery != null) {
+            viewModel.findTruckParkingLocation(context, delivery!!.truck.id)
+            viewModel.findTrailerParkingLocation(context, delivery!!.trailer.id)
+            trailerPlates.value = delivery!!.trailer.plates
+            truckPlates.value = delivery!!.truck.plates
+        }
+    }
+
+    LaunchedEffect(truckParkingLot) {
+        if(truckParkingLot != null){
+            spotCodeStateTruck.value = truckParkingLot!!.parking_location.spot_code
+
+        }
+    }
+
+    LaunchedEffect(trailerParkingLot) {
+        if(trailerParkingLot != null){
+            spotCodeStateTrailer.value = trailerParkingLot!!.parking_location.spot_code
+        }
+    }
+
     Scaffold (
         topBar = {
             TopBar(title = "Selected route", color = false)
         },
         content = { innerPadding ->
             // Screen content
-            Box(modifier = Modifier.fillMaxSize()) {
-                Image(
-                    painter = painterResource(id = R.drawable.login),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Box(modifier = Modifier.padding(innerPadding)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(750.dp)
-                            .padding(15.dp)
-                            .background(
-                                Color.White,
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                    ) {
-                        LazyColumn(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 15.dp))
-                        {
-                            item{
-                                TripsCard(
-                                    origin = "Nairobi",
-                                    destination = "Nakuru",
-                                    date = "January 10th",
-                                    time = "10:00 AM",
-                                    image = "1",
-                                )
-                            }
-                            // line thingy
-                            item{
-                                HorizontalDivider(
-                                    modifier = Modifier
-                                        .width(250.dp)
-                                        .padding(top = 20.dp), thickness = 4.dp, color = LightGray
-                                )
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(color = LightOrange)) {
+                when {
+                    loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = Color.White
+                        )
+                    }
 
-                                Text(
-                                    text = "Semi-Trailer Details",
-                                    color = Orange,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 20.dp, bottom = 20.dp)
-
-                                )
-                            }
-
-                           // item { ElementRow() }
-
-                            item{
-                                Text(
-                                    text = "Docking Area",
-                                    color = Orange,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 20.dp, bottom = 20.dp)
-
-                                )
-                            }
-
-                            //item{ ElementRow(isPort = true) }
-
-                            item{
-                                Text(
-                                    text = "Trailer Parking Area",
-                                    color = Orange,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 20.dp, bottom = 20.dp)
-
-                                )
-                            }
-
-                          //  item{ ElementRow(isPort = true) }
-
-                            item { Spacer(modifier = Modifier.height(20.dp)) }
-
-                            item{
-                                Button(
-                                    onClick = { /*TODO*/ },
-                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                        containerColor = LightBlue
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
+                    delivery != null -> {
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            Column(
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(50.dp)
-                                        .padding(start = 28.dp, end = 28.dp)
+                                        .height(680.dp)
+                                        .padding(15.dp)
+                                        .background(
+                                            LightCreme,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
                                 ) {
-                                    //it should be a button that changes from "Start Docking" to "Start Trip"
-                                    Text("Start Docking")
+
+                                    LazyColumn(
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(
+                                            bottom = 16.dp,
+                                            start = 16.dp,
+                                            end = 16.dp
+                                        ),
+                                    )
+                                    {
+                                        item {
+                                            TripsCard(
+                                                origin = delivery!!.origin.name,
+                                                destination = delivery!!.destination.name,
+                                                date = formattedDate,
+                                                time = formattedTime,
+                                                image = "1",
+                                            )
+                                        }
+
+                                        item {
+                                            HorizontalDivider(
+                                                modifier = Modifier
+                                                    .width(600.dp)
+                                                    .padding(top = 20.dp),
+                                                thickness = 4.dp,
+                                                color = LightGray
+                                            )
+
+                                            Text(
+                                                text = truckParkingLot?.parking_location?.parking_lot_name
+                                                    ?: "Loading parking info...",
+                                                color = Orange,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(
+                                                    top = 20.dp,
+                                                    bottom = 5.dp
+                                                )
+
+                                            )
+
+                                        }
+                                        // line thingy
+                                        item {
+
+                                            Text(
+                                                text = "Trailer",
+                                                color = LightBlue,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(
+                                                    top = 20.dp,
+                                                    bottom = 20.dp
+                                                )
+
+                                            )
+
+                                            OrangeTextFields(
+                                                spotCodeStateTrailer,
+                                                "ParkingLot Code",
+                                                KeyboardOptions(imeAction = ImeAction.Next),
+                                                readOnly = true
+                                            )
+
+                                            Spacer(modifier = Modifier.height(6.dp))
+
+                                            OrangeTextFields(
+                                                trailerPlates,
+                                                "Plates",
+                                                KeyboardOptions(imeAction = ImeAction.Next),
+                                                readOnly = true
+                                            )
+                                        }
+
+                                        item {
+
+                                            Text(
+                                                text = "Truck",
+                                                color = LightBlue,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(
+                                                    top = 20.dp,
+                                                    bottom = 20.dp
+                                                )
+
+                                            )
+
+                                            OrangeTextFields(
+                                                spotCodeStateTruck,
+                                                "ParkingLot Code",
+                                                KeyboardOptions(imeAction = ImeAction.Next),
+                                                readOnly = true
+                                            )
+
+                                            Spacer(modifier = Modifier.height(6.dp))
+
+
+                                            OrangeTextFields(
+                                                truckPlates,
+                                                "Plates",
+                                                KeyboardOptions(imeAction = ImeAction.Next),
+                                                readOnly = true
+                                            )
+                                        }
+
+                                        item {
+                                            Text(
+                                                text = "Docking Area",
+                                                color = LightBlue,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(
+                                                    top = 20.dp,
+                                                    bottom = 20.dp
+                                                )
+
+                                            )
+                                        }
+
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 20.dp)
+                                        .height(55.dp)
+                                        .background(Create, RoundedCornerShape(10.dp))
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val routeJson =
+                                                Json.encodeToString(delivery!!.route)
+                                            navController.navigate(
+                                                "navigation/${
+                                                    URLEncoder.encode(
+                                                        routeJson,
+                                                        "UTF-8"
+                                                    )
+                                                }"
+                                            )
+                                        }) {
+
+                                    Text(
+                                        text = "Load Route",
+                                        color = Color(0xFF009045),
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+
                                 }
                             }
                         }
@@ -142,8 +308,3 @@ fun SelectedRouteScreen(modifier: Modifier = Modifier) {
 }
 
 
-@Preview
-@Composable
-private fun PreviewSelectedRouteScreen() {
-    SelectedRouteScreen()
-}

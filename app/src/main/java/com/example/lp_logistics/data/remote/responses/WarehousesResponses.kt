@@ -1,5 +1,7 @@
 package com.example.lp_logistics.data.remote.responses
 
+import kotlinx.serialization.Serializable
+
 data class CompanyResponse(
     val id: Int,
     val name: String,
@@ -76,10 +78,154 @@ data class BoxResponse(//no pallet info
     val product:  String //ProductResponse
 )
 
+data class BoxResponseWithPallet(
+    val id: Int,
+    val pallet: PalletResponse,
+    val qty: Int,
+    val weight: String,
+    val volume: String,
+    val product:  String //ProductResponse
+)
+
 data class Companies(
     val companies: List<CompanyResponse>
 )
 
 data class Warehouses(
     val warehouses: List<WarehouseResponse>
+)
+
+//data classes to get the response of delivery orders
+
+data class DeliveryResponse(
+    val message: String,
+    val data: List<DeliveryData>
+)
+
+data class DeliveryData(
+    val id: Int,
+    val truck: Truck,
+    val trailer: Trailer,
+    val company: Company,
+    val created_by: Int,
+    val status: String,
+    val shipping_date: String,
+    val completed_date: String?,
+    val route: RouteFromDelivery,
+    val type: String,
+    val estimated_arrival: String,
+    val estimated_duration_minutes: Int,
+    val origin_id: Int,
+    val origin_type: String,
+    val destination_id: Int,
+    val destination_type: String,
+    val origin: Origin,
+    val destination: Destination,
+    val delivery_details: List<DeliveryDetail>
+)
+
+data class Truck(
+    val id: Int,
+    val plates: String,
+    val vin: String,
+    val model_id: Int,
+    val volume: String,
+    val driver_id: Int?,
+    val type: String,
+    val is_available: Boolean
+)
+
+data class Trailer(
+    val id: Int,
+    val plates: String,
+    val vin: String,
+    val model_id: Int,
+    val volume: String,
+    val driver_id: Int?,
+    val type: String,
+    val is_available: Boolean
+)
+
+data class Company(
+    val id: Int,
+    val name: String,
+    val rfc: String,
+    val email: String,
+    val phone: String,
+    val service: Int,
+)
+
+@Serializable
+data class RouteFromDelivery(
+    val PolylinePath: List<List<LatLng>>,
+    val RouteDirections: List<RouteDirection>
+)
+
+@Serializable
+data class LatLng(
+    val lat: Double,
+    val lng: Double
+)
+
+@Serializable
+data class RouteDirection(
+    val giro: Int,
+    val point: LatLng,
+    val long_m: Double,
+    val geojson: String,
+    val direccion: String,
+    val tiempo_min: Double,
+    val costo_caseta: Int,
+    val punto_caseta: String?,
+    val eje_excedente: Int
+)
+
+data class Origin(
+    val id: Int,
+    val name: String,
+    val latitude: String,
+    val longitude: String,
+    val id_routing_net: String?,
+    val source: String?,
+    val target: String?
+)
+
+data class Destination(
+    val id: Int,
+    val name: String,
+    val latitude: String,
+    val longitude: String,
+    val company: Int,
+    val id_routing_net: String,
+    val source: String,
+    val target: String
+)
+
+data class DeliveryDetail(
+    val id: Int,
+    val delivery: Int,
+    val pallet: Pallet,
+)
+
+data class Pallet(
+    val id: Int,
+    val company: Int,
+    val warehouse: Int,
+    val weight: String,
+    val volume: String,
+    val status: String,
+    val verified: Boolean,
+)
+
+//parking lot location response
+
+data class ParkingLotResponse(
+    val vehicle_id: Int,
+    val parking_location: ParkingLocation
+)
+
+data class ParkingLocation(
+    val warehouse_name: String,
+    val parking_lot_name: String,
+    val spot_code: String
 )

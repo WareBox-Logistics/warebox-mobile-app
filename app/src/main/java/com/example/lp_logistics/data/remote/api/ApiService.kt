@@ -2,12 +2,19 @@ package com.example.lp_logistics.data.remote.api
 
 import com.example.lp_logistics.data.remote.requests.CreateBoxRequest
 import com.example.lp_logistics.data.remote.requests.CreatePalletRequest
+import com.example.lp_logistics.data.remote.requests.DriverIdRequest
 import com.example.lp_logistics.data.remote.requests.LoginRequest
+import com.example.lp_logistics.data.remote.requests.ParkingLotRequest
+import com.example.lp_logistics.data.remote.requests.ReportDispatchRequest
 import com.example.lp_logistics.data.remote.responses.BoxResponse
+import com.example.lp_logistics.data.remote.responses.BoxResponseWithPallet
 import com.example.lp_logistics.data.remote.responses.Companies
 import com.example.lp_logistics.data.remote.responses.CompanyResponse
+import com.example.lp_logistics.data.remote.responses.DeliveryData
+import com.example.lp_logistics.data.remote.responses.DeliveryResponse
 import com.example.lp_logistics.data.remote.responses.LoginResponse
 import com.example.lp_logistics.data.remote.responses.PalletResponse
+import com.example.lp_logistics.data.remote.responses.ParkingLotResponse
 import com.example.lp_logistics.data.remote.responses.ProductResponse
 import com.example.lp_logistics.data.remote.responses.RouteResponse
 import com.example.lp_logistics.data.remote.responses.SimpleProductResponse
@@ -86,7 +93,7 @@ interface ApiService {
     suspend fun getBox(
         @Header("Authorization") token: String,
         @Path("id") id: Int
-    ): BoxResponse
+    ): BoxResponseWithPallet
 
     //get all companies
     @GET("company")
@@ -105,4 +112,34 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("company") company: Int
     ): List<SimpleProductResponse>
+
+    @POST("delivery-driver")
+    suspend fun getDeliveryOrders(
+        @Header("Authorization") token: String,
+        @Body request: DriverIdRequest
+    ): DeliveryResponse
+
+    @POST("lots/vehicle/location")
+    suspend fun getParkingLot(
+        @Header("Authorization") token: String,
+        @Body request: ParkingLotRequest
+    ): ParkingLotResponse
+
+    @POST("lots/vehicle/location")
+    suspend fun getParkingLotTrailer(
+        @Header("Authorization") token: String,
+        @Body request: ParkingLotRequest
+    ): ParkingLotResponse
+
+    @GET("delivery/{id}")
+    suspend fun getDelivery(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int
+    ): DeliveryData
+
+    @POST("report")
+    suspend fun postReportForDispatch(
+        @Header("Authorization") token: String,
+        @Body request: ReportDispatchRequest
+    )
 }

@@ -60,7 +60,8 @@ data class Geometry(
 
 data class Coordinate(
     val lat: Double,
-    val lng: Double
+    val lng: Double,
+    val remainingDistance: Double? = null
 )
 
 data class PolylinePath(
@@ -70,5 +71,11 @@ data class PolylinePath(
 data class RouteDirection(
     val points: List<Coordinate>, // List of coordinates representing the route
     val instructions: List<String>, // List of instructions for the route
-    val long_m: Double // Length of the route in meters
+    val totalDistance: Double, // Length of the route in meters
+    val tollBooths: List<TollBooth> // List of toll booths along the route
+)
+
+data class TollBooth(
+    val coordinate: Coordinate,
+    val cost: Int
 )

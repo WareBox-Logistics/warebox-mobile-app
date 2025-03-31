@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +72,7 @@ import com.example.lp_logistics.presentation.components.ItemBox
 import com.example.lp_logistics.presentation.components.NumericOrangeTextField
 import com.example.lp_logistics.presentation.components.NumericOrangeTextFieldContainers
 import com.example.lp_logistics.presentation.components.OrangeTextFields
+import com.example.lp_logistics.presentation.components.QR.generateQRCodeBitmap
 import com.example.lp_logistics.presentation.components.SearchBar
 import com.example.lp_logistics.presentation.components.SelectableDropdown
 import com.example.lp_logistics.presentation.components.SlimButton
@@ -87,6 +89,7 @@ import com.example.lp_logistics.presentation.theme.RedText
 import com.example.lp_logistics.presentation.theme.Report
 import com.example.lp_logistics.presentation.theme.Warning
 import com.example.lp_logistics.presentation.theme.WarningText
+import androidx.compose.foundation.Image
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,6 +107,11 @@ fun CreatePalletScreen(navController: NavController, creating: Boolean = false, 
     //boxbottomsheet
     var showBoxBottomSheet by remember { mutableStateOf(false) }
     val boxSheetState = rememberModalBottomSheetState()
+
+    //QR bottom sheet
+    var showQRBottomSheet by remember { mutableStateOf(false) }
+    val qrSheetState = rememberModalBottomSheetState()
+    val qrCodes = remember { mutableListOf<String>() }
 
     val context = LocalContext.current
 
@@ -194,6 +202,11 @@ fun CreatePalletScreen(navController: NavController, creating: Boolean = false, 
 
                 weightState.value = palletInfo!!.weight
                 println("Set palletWeight = ${palletWeight.floatValue}")
+
+                qrCodes.add(palletID.value)
+                boxesResponseList.forEach { box ->
+                    qrCodes.add(box.id.toString())
+                }
             }
         }
 
@@ -427,16 +440,21 @@ fun CreatePalletScreen(navController: NavController, creating: Boolean = false, 
                                                 .background(LightOrange, RoundedCornerShape(10.dp))
                                                 .weight(1f)
                                                 .clickable {
-                                                    if (client != null) {
-                                                        showBottomSheet = true
-                                                    } else {
-                                                        Toast
-                                                            .makeText(
-                                                                context,
-                                                                "Please select a company",
-                                                                Toast.LENGTH_SHORT
-                                                            )
-                                                            .show()
+                                                    if (creating) {
+                                                        if (client != null) {
+                                                            showBottomSheet = true
+                                                        } else {
+                                                            Toast
+                                                                .makeText(
+                                                                    context,
+                                                                    "Please select a company",
+                                                                    Toast.LENGTH_SHORT
+                                                                )
+                                                                .show()
+                                                        }
+                                                    }else{
+                                                        //save all the box and pallet ID in the qr string
+                                                        showQRBottomSheet = true
                                                     }
                                                 }
                                         ) {
@@ -868,6 +886,12 @@ fun CreatePalletScreen(navController: NavController, creating: Boolean = false, 
                                             .fillMaxWidth()
                                             .padding(horizontal = 10.dp, vertical = 5.dp),
                                     )
+                                    val qrCodeBitmap = generateQRCodeBitmap(box.id.toString())
+                                    Image(
+                                        bitmap = qrCodeBitmap.asImageBitmap(),
+                                        contentDescription = "QR Code for ${box.id}",
+                                        modifier = Modifier.size(200.dp)
+                                    )
 
                                     SlimButton(
                                         onClick = {
@@ -883,6 +907,49 @@ fun CreatePalletScreen(navController: NavController, creating: Boolean = false, 
                             }
                         }
                     }
+                }
+            }
+
+            if(showQRBottomSheet) {
+                BottomSheet(
+                    sheetState = qrSheetState,
+                    onDismissRequest = { showQRBottomSheet = false },
+                ) {
+                    Spacer(modifier = Modifier.height(5.dp).fillMaxWidth())
+                    Text(
+                        text = "Generated PDF",
+                        fontSize = 18.sp,
+                        color = Orange,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 10.dp)
+                    )
+
+                    qrCodes.forEachIndexed{index,id->
+                        val qrCodeBitmap = generateQRCodeBitmap(id)
+                        if(index == 0){
+                            Text(
+                                text = "Pallet QR",
+                                fontSize = 16.sp,
+                                color = Orange,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 10.dp)
+                            )
+                        }else if(index == 1){
+                            Text(
+                                text = "Boxes QR",
+                                fontSize = 16.sp,
+                                color = Orange,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 10.dp))
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Image(
+                            bitmap = qrCodeBitmap.asImageBitmap(),
+                            contentDescription = "QR Code for $id",
+                            modifier = Modifier.size(200.dp)
+                        )
+                    }
+
                 }
             }
         },

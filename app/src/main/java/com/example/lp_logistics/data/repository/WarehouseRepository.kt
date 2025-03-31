@@ -4,6 +4,7 @@ import com.example.lp_logistics.data.remote.api.ApiService
 import com.example.lp_logistics.data.remote.requests.CreateBoxRequest
 import com.example.lp_logistics.data.remote.requests.CreatePalletRequest
 import com.example.lp_logistics.data.remote.responses.BoxResponse
+import com.example.lp_logistics.data.remote.responses.BoxResponseWithPallet
 import com.example.lp_logistics.data.remote.responses.Companies
 import com.example.lp_logistics.data.remote.responses.CompanyResponse
 import com.example.lp_logistics.data.remote.responses.PalletResponse
@@ -44,7 +45,7 @@ class WarehouseRepository @Inject constructor(private val apiService: ApiService
             )
         } catch (e: HttpException) {
             println("HTTP Error: ${e.code()} - ${e.message()}")
-            throw e // Rethrow the exception or handle it as necessary
+            throw e
         }
     }
 
@@ -94,7 +95,7 @@ class WarehouseRepository @Inject constructor(private val apiService: ApiService
         }
     }
 
-    suspend fun getBox(token: String, id: Int): BoxResponse {
+    suspend fun getBox(token: String, id: Int): BoxResponseWithPallet {
         return try{
             withContext(Dispatchers.IO) {
                 apiService.getBox("Bearer $token", id)
@@ -137,5 +138,7 @@ class WarehouseRepository @Inject constructor(private val apiService: ApiService
             throw e
         }
     }
+
+
 
 }
