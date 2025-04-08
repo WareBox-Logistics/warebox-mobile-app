@@ -3,6 +3,7 @@ package com.example.lp_logistics.presentation.screens.navigationV2
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.rounded.CarCrash
 import androidx.compose.material.icons.rounded.Dangerous
 import androidx.compose.material.icons.rounded.LocalPolice
 import androidx.compose.material.icons.rounded.MinorCrash
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +49,7 @@ import com.google.android.gms.location.LocationServices.*
 import com.google.android.gms.maps.model.LatLng
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -57,10 +60,9 @@ import com.example.lp_logistics.domain.model.PolylinePath
 import com.example.lp_logistics.domain.model.TollBooth
 import com.example.lp_logistics.presentation.components.BottomSheet
 import com.example.lp_logistics.presentation.theme.LightBlue
-import com.example.lp_logistics.presentation.theme.LightCreme
+import com.example.lp_logistics.presentation.components.QR.generateQRCodeBitmap
 import com.example.lp_logistics.presentation.theme.LightOrange
 import com.example.lp_logistics.presentation.theme.Orange
-import com.example.lp_logistics.presentation.theme.OrangeWarning
 import com.example.lp_logistics.presentation.theme.Report
 import com.example.lp_logistics.presentation.theme.Warning
 import com.example.lp_logistics.presentation.theme.WarningText
@@ -86,8 +88,13 @@ import kotlinx.coroutines.launch
 fun MapScreen(
     navController: NavHostController,
     routeJson: String,
+    deliveryID: String,
+    deliveryType: String,
     viewModel: RouteViewModel = hiltViewModel(),
 ) {
+    val deliveryId = viewModel.deliveryId
+    val truckId = viewModel.truckId
+
     // Observe LiveData from ViewModel
     val polylinePaths by viewModel.polylinePaths.observeAsState()
     val routeDirections by viewModel.routeDirections.observeAsState()
@@ -104,6 +111,9 @@ fun MapScreen(
     var mapLoaded by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    var showBottomSheetQR by remember { mutableStateOf(false) }
+    val sheetStateQR = rememberModalBottomSheetState()
 
     Log.d("MapScreen", "polylinePath: $polylinePaths")
     // Camera Position State
@@ -235,6 +245,35 @@ fun MapScreen(
                             Icon(
                                 Icons.Rounded.Warning,
                                 contentDescription = "Warning",
+                                tint = Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Spacer(Modifier.weight(1f))
+                        FloatingActionButton(
+                            onClick = {
+
+                                if(deliveryType == "warehouse_to_location"){
+                                    navController.navigate("qr-scanner?driver=${true}")
+                                }else{
+                                showBottomSheetQR = true
+                                    println("THis isnthe type: $deliveryType")
+                                }
+                                      },
+                            modifier = Modifier.padding(16.dp),
+                            containerColor = LightBlue,
+                            contentColor = Color.White,
+                            shape = RoundedCornerShape(50.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.QrCode,
+                                contentDescription = "QR for delivery",
                                 tint = Color.White,
                                 modifier = Modifier.size(30.dp)
                             )
@@ -474,6 +513,31 @@ fun MapScreen(
                     }
                 }
 
+        if (showBottomSheetQR) {
+            BottomSheet(
+                sheetState = sheetStateQR,
+                onDismissRequest = { showBottomSheetQR = false },
+            ) {
+                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                val qrCodeBitmap = generateQRCodeBitmap(deliveryID)
+                Text(
+                    text = "Delivery QR",
+                    color = Orange,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(
+                        top = 20.dp,
+                        bottom = 20.dp
+                    )
+                )
+
+                Image(
+                    bitmap = qrCodeBitmap.asImageBitmap(),
+                    contentDescription = "QR Code for the delivery",
+                    modifier = Modifier.size(200.dp)
+                )
+            }
+        }
     }
 }
 

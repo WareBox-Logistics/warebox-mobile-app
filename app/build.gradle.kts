@@ -142,6 +142,8 @@ dependencies {
 
     // Firebase Realtime Database (Kotlin support)
     implementation("com.google.firebase:firebase-database-ktx")
+    implementation ("com.google.firebase:firebase-messaging-ktx")
+    implementation ("com.google.firebase:firebase-analytics-ktx")
 
 }
 

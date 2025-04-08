@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 
 @Composable
-fun ScannerNavigator(navController: NavHostController, isPallet: Boolean = false) {
+fun ScannerNavigator(navController: NavHostController, isPallet: Boolean = false, delivery: Boolean = false, driver: Boolean = false) {
     val context = LocalContext.current
     val qrCodeScanner = remember { QRCodeScanner(context) }
     var scannedData by remember { mutableStateOf("") }
@@ -31,7 +31,10 @@ fun ScannerNavigator(navController: NavHostController, isPallet: Boolean = false
             if (isPallet) {
                 println("Navigate to Pallet Screen")
                 navController.navigate("create-pallet?palletIDNav=${scannedData.toInt()}")
-
+            } else if (delivery) {
+                navController.navigate("delivery-info?deliveryID=${scannedData.toInt()}")
+                } else if (driver) {
+                navController.navigate("confirming-delivery?code=${scannedData}")
             } else {
                 println("Navigate to Box Info Screen")
                 navController.navigate("box-info?boxID=${scannedData.toInt()}")

@@ -1,6 +1,7 @@
 package com.example.lp_logistics.presentation.screens.profile
 
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.lp_logistics.R
 import com.example.lp_logistics.data.local.UserManager
 import com.example.lp_logistics.data.remote.requests.User
 import com.example.lp_logistics.presentation.components.BottomBar
@@ -45,7 +48,7 @@ import com.example.lp_logistics.presentation.theme.LightOrange
 import com.example.lp_logistics.presentation.theme.Orange
 
 @Composable
-fun ProfileScreen(navController: NavController, context: Context, viewModel: ProfileViewModel = hiltViewModel()) {
+fun ProfileScreen(navController: NavController, context: Context, isWarehouse: Boolean = false, viewModel: ProfileViewModel = hiltViewModel()) {
     var user by remember { mutableStateOf<User?>(null) }
 
     LaunchedEffect(Unit) {
@@ -69,7 +72,13 @@ fun ProfileScreen(navController: NavController, context: Context, viewModel: Pro
                             .align(Alignment.TopCenter)
                     ) {
 
-                        //pfp image if any
+                        Image(
+                            painterResource(R.drawable.wb_icon),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(15.dp)
+                        )
 
                     }
 
@@ -143,7 +152,7 @@ fun ProfileScreen(navController: NavController, context: Context, viewModel: Pro
             }
         },
         bottomBar = {
-            BottomBar(navController)
+            BottomBar(navController, isWarehouse)
         }
     )
 

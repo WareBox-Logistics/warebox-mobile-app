@@ -1,5 +1,6 @@
 package com.example.lp_logistics.data.remote.responses
 
+import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.Serializable
 
 data class CompanyResponse(
@@ -112,7 +113,7 @@ data class DeliveryData(
     val shipping_date: String,
     val completed_date: String?,
     val route: RouteFromDelivery,
-    val type: String,
+    val type: String,//make a scanner if deliveries of type warehouse - location
     val estimated_arrival: String,
     val estimated_duration_minutes: Int,
     val origin_id: Int,
@@ -121,7 +122,8 @@ data class DeliveryData(
     val destination_type: String,
     val origin: Origin,
     val destination: Destination,
-    val delivery_details: List<DeliveryDetail>
+    val delivery_details: List<DeliveryDetail>,
+    val dock: Dock
 )
 
 data class Truck(
@@ -227,5 +229,33 @@ data class ParkingLotResponse(
 data class ParkingLocation(
     val warehouse_name: String,
     val parking_lot_name: String,
-    val spot_code: String
+    val spot_code: String,
+    val lot_id: Int
+)
+
+data class DeliveryDock (
+    val dock: Dock,
+    val scheduled_time: String
+)
+
+data class Dock (
+    val id: Int,
+    val number: Int
+)
+
+data class ResponseMessage(
+    val message: String
+)
+
+data class DeliveryStatusResponse(
+    @SerializedName("delivery_id") val deliveryId: Int,
+    @SerializedName("status") val status: String
+)
+
+data class ConfirmationByQR(
+    @SerializedName("confirmation_code")val confirmationCode: String
+)
+
+data class FreeLot(
+    @SerializedName("lot_id") val lotID: Int
 )

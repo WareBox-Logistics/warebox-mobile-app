@@ -70,6 +70,7 @@ fun LoginScreen(
     var password by remember {mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val loginError by viewModel.loginError
 
 
     val isLoggedIn = viewModel.isLoggedIn.value
@@ -234,6 +235,16 @@ fun LoginScreen(
                                 fontWeight = FontWeight.SemiBold)
                         }
                     }
+                }
+
+                if (!loginError.isNullOrEmpty()) {
+                    Text(
+                        text = loginError ?: "Login error",
+                        color = Color.Red,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 90.dp)
+                    )
                 }
             }
         }

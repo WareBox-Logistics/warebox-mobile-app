@@ -27,10 +27,18 @@
 
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyAFdBkuzONdN6YoObo8EXZ8Lle3yaD7JVQ"/>
 
+        <service
+            android:name=".data.repository.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="WareBox"
             android:windowSoftInputMode="adjustPan"
             android:theme="@style/Theme.LP_Logistics">
             <intent-filter>

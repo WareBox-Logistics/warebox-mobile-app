@@ -1,15 +1,17 @@
 package com.example.lp_logistics
 
 import android.Manifest.permission
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.runtime.CompositionLocalProvider
 import com.example.lp_logistics.presentation.navigation.LocalComponentActivity
 import androidx.fragment.app.FragmentActivity
+import com.google.firebase.messaging.FirebaseMessaging
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -32,10 +35,16 @@ class MainActivity : FragmentActivity() {
     private val postNotificationPermissionGranted = mutableStateOf(false) // Make it a val
 
 
-
+    @RequiresApi(VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d("FCM", "Token: ${task.result}")
+            }
+        }
 
         permissionsLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
@@ -59,6 +68,11 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+    }
+
 
     @Composable
     fun CheckAndRequestPermissions(

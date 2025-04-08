@@ -26,28 +26,28 @@ import com.example.lp_logistics.presentation.theme.Orange
 fun BottomBar(navController: NavController, isWarehouse: Boolean = false) {
     BottomAppBar(modifier = Modifier.background(color = Color.White)){
         Row {
-            Column(verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f)
-                    .weight(1f)
-                    .clickable {
-                        if (!isWarehouse) navController.navigate("truck") else navController.navigate(
-                            "arrivals"
-                        )
-                    }) {
-                Icon(
-                    painter = painterResource(R.drawable.delivery_truck),
-                    tint = Orange,
-                    contentDescription = "Semi-Truck",
-                    modifier = Modifier.size(30.dp)
-                )
+            if (!isWarehouse) {
+                Column(verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                        .weight(1f)
+                        .clickable {
+                            navController.navigate("vehicle")
+                        }) {
+                    Icon(
+                        painter = painterResource(R.drawable.delivery_truck),
+                        tint = Orange,
+                        contentDescription = "Semi-Truck",
+                        modifier = Modifier.size(30.dp)
+                    )
 
-                Text(
-                    text = if (!isWarehouse) "Semi-Truck" else "Arrivals",
-                    color = Orange,
-                    fontSize = 12.sp
+                    Text(
+                        text = if (!isWarehouse) "Semi-Truck" else "Arrivals",
+                        color = Orange,
+                        fontSize = 12.sp
 
-                )
+                    )
+                }
             }
 
             Column(verticalArrangement = Arrangement.Center,
@@ -82,12 +82,17 @@ fun BottomBar(navController: NavController, isWarehouse: Boolean = false) {
 
                 )
             }
-
                 Column(verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { navController.navigate("profile") }) {
+                        .clickable {
+                            if(isWarehouse){
+                                navController.navigate("profile/${isWarehouse}")
+                            }else {
+                                navController.navigate("profile")
+                            }
+                        }) {
                     Icon(
                         painter = painterResource(R.drawable.person),
                         tint = Orange,
@@ -111,5 +116,5 @@ fun BottomBar(navController: NavController, isWarehouse: Boolean = false) {
 @Preview
 @Composable
 private fun PreviewBottomBar() {
-    BottomBar(navController = NavController(LocalContext.current))
+    BottomBar(navController = NavController(LocalContext.current), isWarehouse = true)
 }

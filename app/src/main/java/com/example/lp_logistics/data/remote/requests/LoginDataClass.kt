@@ -10,6 +10,7 @@ data class  User(
     val first_name: String,
     val last_name: String,
     val email: String,
+    val roleID: Int,
     val role: String,
     val created_at: String,
     val updated_at: String

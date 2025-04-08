@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lp_logistics.data.local.UserManager
@@ -41,8 +42,12 @@ import javax.inject.Inject
 class RouteViewModel @Inject constructor(
     private val fusedLocationProviderClient: FusedLocationProviderClient,
     @ApplicationContext private val context: Context,
-    private val repository: DeliveryRepository
+    private val repository: DeliveryRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    val deliveryId = savedStateHandle.get<String>("deliveryId") ?: ""
+    val truckId = savedStateHandle.get<String>("truckId") ?: ""
 
     private val _polylinePaths = MutableLiveData<List<PolylinePath>>()
     val polylinePaths: LiveData<List<PolylinePath>> = _polylinePaths
@@ -346,14 +351,19 @@ class RouteViewModel @Inject constructor(
     private fun updateDriverLocation(lat: Double, lng: Double) {
         viewModelScope.launch {
             try {
+                val updateData = mutableMapOf(
+                    "lat" to lat,
+                    "lng" to lng,
+                    "lastUpdated" to ServerValue.TIMESTAMP
+                )
+
+                deliveryId?.let { updateData["deliveryId"] = it }
+                truckId?.let { updateData["truckId"] = it }
+
                 Firebase.database.reference
                     .child("drivers")
                     .child(driverIDViewModel.toString())
-                    .setValue(mapOf(
-                        "lat" to lat,
-                        "lng" to lng,
-                        "lastUpdated" to ServerValue.TIMESTAMP
-                    ))
+                    .setValue(updateData)
             } catch (e: Exception) {
                 Log.e("Firebase", "Failed to update location: ${e.message}")
             }

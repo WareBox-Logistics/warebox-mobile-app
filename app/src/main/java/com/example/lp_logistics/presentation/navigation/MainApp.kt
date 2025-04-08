@@ -20,8 +20,11 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.lp_logistics.presentation.components.QR.Camera.ScannerNavigator
 import com.example.lp_logistics.presentation.screens.navigationV2.MapScreen
+import com.example.lp_logistics.presentation.screens.profile.VehicleScreen
 import com.example.lp_logistics.presentation.screens.routes.SelectedRouteScreen
 import com.example.lp_logistics.presentation.screens.warehouse.arrivals.ArrivalsScreen
+import com.example.lp_logistics.presentation.screens.warehouse.arrivals.ConfirmArrival
+import com.example.lp_logistics.presentation.screens.warehouse.arrivals.DeliveryScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.BoxInfoScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.CreatePalletScreen
 import com.example.lp_logistics.presentation.screens.warehouse.pallets.PalletScreen
@@ -35,39 +38,55 @@ fun MainApp(
     context: android.content.Context,
 ) {
     val activity = LocalContext.current as FragmentActivity
-    var isLoggedIn by remember { mutableStateOf(false) }
-    var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) } // Loading state
-    var startDestination by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        user = UserManager.getUser(context)
-        isLoggedIn = user != null
-        isLoading = false // Loading finished
-
+    // Track the current authentication state
+    val authState by produceState<AuthState>(initialValue = AuthState.Loading) {
+        val user = UserManager.getUser(context)
+        value = when {
+            user == null -> AuthState.Unauthenticated
+            user.roleID in listOf(2, 3) -> AuthState.Authenticated(user)
+            else -> {
+                UserManager.clearUser(context)
+                AuthState.Unauthenticated
+            }
+        }
+        isLoading = false
     }
 
-    LaunchedEffect(user) {
-        startDestination = when {
-            isLoggedIn && user?.role == "Chofer" -> "home"
-            isLoggedIn && user?.role == "Almacenista" -> "arrivals"
+    // Calculate the correct start destination
+    val startDestination = remember(authState) {
+        when (authState) {
+            is AuthState.Authenticated -> {
+                when ((authState as AuthState.Authenticated).user.roleID) {
+                    2 -> "pallets" // Warehouse
+                    3 -> "home"    // Driver
+                    else -> "login"
+                }
+            }
             else -> "login"
         }
     }
 
-    if (isLoading) {
-        // Show a loading indicator while checking login status
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CircularProgressIndicator()
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Authenticated) {
+            navController.navigate(startDestination) {
+                // Clear the back stack
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                // Prevent multiple copies of the same destination
+                launchSingleTop = true
+            }
         }
+    }
+
+    if (isLoading) {
+        LoadingScreen()
     } else {
         NavHost(
             navController = navController,
-            startDestination = startDestination
+            startDestination = startDestination,
         ) {
             composable("login") {
                 LoginScreen(context, navController)
@@ -76,15 +95,26 @@ fun MainApp(
                 HomeScreen(navController, context)
             }
 
-            composable("profile") {
-                ProfileScreen(navController, context)
-            }
+            // In your NavHost declaration:
+            composable(
+                "profile?isWarehouse={isWarehouse}",
+                ) { backStackEntry ->
+                    val isWarehouse = backStackEntry.arguments?.getBoolean("isWarehouse") ?: false
+                    ProfileScreen(navController, context, isWarehouse)
+                }
 
-            composable("navigation/{routeJson}",
-                arguments = listOf(navArgument("routeJson") { type = NavType.StringType })) { backStackEntry ->
+            composable("navigation/{deliveryId}/{deliveryType}/{routeJson}",
+                arguments = listOf(
+                navArgument("deliveryId") { type = NavType.StringType }, // or NavType.LongType if it's numeric
+                navArgument("deliveryType") { type = NavType.StringType },    // or NavType.LongType if it's numeric
+                navArgument("routeJson") { type = NavType.StringType }
+            )
+            ) { backStackEntry ->
+                val deliveryId = backStackEntry.arguments?.getString("deliveryId") ?: ""
+                val deliveryType = backStackEntry.arguments?.getString("deliveryType") ?: ""
                 val routeJson = backStackEntry.arguments?.getString("routeJson") ?: ""
 //
-                MapScreen(navController, routeJson)
+                MapScreen(navController, routeJson, deliveryId, deliveryType)
             }
 
             composable("arrivals"){
@@ -103,9 +133,12 @@ fun MainApp(
                 CreatePalletScreen(navController, creating, palletIDNav)
             }
 
-            composable("qr-scanner?isPallet={isPallet}"){ backStackEntry ->
+            composable("qr-scanner?isPallet={isPallet}&delivery={delivery}&driver={driver}"){ backStackEntry ->
                 val isPallet = backStackEntry.arguments?.getString("isPallet")?.toBoolean() ?: false
-                    ScannerNavigator(navController = navController, isPallet = isPallet)
+                val delivery = backStackEntry.arguments?.getString("delivery")?.toBoolean() ?: false
+                val driver = backStackEntry.arguments?.getString("driver")?.toBoolean() ?: false
+
+                    ScannerNavigator(navController = navController, isPallet = isPallet, delivery = delivery, driver = driver)
                 }
 
             composable("box-info?boxID={boxID}"){ backStackEntry ->
@@ -121,9 +154,40 @@ fun MainApp(
                 SelectedRouteScreen( navController, deliveryID)
             }
 
+            composable("delivery-info?deliveryID={deliveryID}"){ backStackEntry ->
+                val deliveryID = backStackEntry.arguments?.getString("deliveryID")?.toInt() ?: 0
+                println("deliveryID in Main app: $deliveryID")
+                DeliveryScreen(deliveryID, navController)
+            }
+
+            composable("vehicle"){
+                VehicleScreen(navController)
+            }
+
+            composable("confirming-delivery?code={code}") { backStackEntry ->
+                val code = backStackEntry.arguments?.getString("code") ?: ""
+                ConfirmArrival(code, navController)
+            }
 
         }
     }
+}
+
+@Composable
+fun LoadingScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+sealed class AuthState {
+    object Loading : AuthState()
+    data class Authenticated(val user: User) : AuthState()
+    object Unauthenticated : AuthState()
 }
 
 

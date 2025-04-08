@@ -40,9 +40,14 @@ object DateTimeUtils {
     @RequiresApi(Build.VERSION_CODES.O)
     fun formatToTime(isoString: String): String {
         return try {
-            val zonedDateTime = ZonedDateTime.parse(isoString, isoFormatter)
-            val localTime = zonedDateTime.withZoneSameInstant(ZoneId.systemDefault())
-            localTime.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
+            // 1. Parse as UTC time
+            val utcTime = ZonedDateTime.parse(isoString, isoFormatter)
+
+            // 2. MANUALLY ADD 7 HOURS for Tijuana (UTC-7)
+//val adjustedTime = utcTime.plusHours(7)
+
+            // 3. Format for display
+            utcTime.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
         } catch (e: Exception) {
             isoString // Fallback to original string
         }

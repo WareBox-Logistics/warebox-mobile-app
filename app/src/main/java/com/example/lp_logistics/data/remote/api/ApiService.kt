@@ -6,24 +6,33 @@ import com.example.lp_logistics.data.remote.requests.DriverIdRequest
 import com.example.lp_logistics.data.remote.requests.LoginRequest
 import com.example.lp_logistics.data.remote.requests.ParkingLotRequest
 import com.example.lp_logistics.data.remote.requests.ReportDispatchRequest
-import com.example.lp_logistics.data.remote.responses.BoxResponse
 import com.example.lp_logistics.data.remote.responses.BoxResponseWithPallet
 import com.example.lp_logistics.data.remote.responses.Companies
 import com.example.lp_logistics.data.remote.responses.CompanyResponse
+import com.example.lp_logistics.data.remote.responses.ConfirmationByQR
 import com.example.lp_logistics.data.remote.responses.DeliveryData
+import com.example.lp_logistics.data.remote.responses.DeliveryDock
 import com.example.lp_logistics.data.remote.responses.DeliveryResponse
+import com.example.lp_logistics.data.remote.responses.DeliveryStatusResponse
+import com.example.lp_logistics.data.remote.responses.FreeLot
 import com.example.lp_logistics.data.remote.responses.LoginResponse
 import com.example.lp_logistics.data.remote.responses.PalletResponse
 import com.example.lp_logistics.data.remote.responses.ParkingLotResponse
 import com.example.lp_logistics.data.remote.responses.ProductResponse
+import com.example.lp_logistics.data.remote.responses.ResponseMessage
 import com.example.lp_logistics.data.remote.responses.RouteResponse
 import com.example.lp_logistics.data.remote.responses.SimpleProductResponse
 import com.example.lp_logistics.data.remote.responses.WarehouseResponse
 import com.example.lp_logistics.data.remote.responses.Warehouses
+import com.example.lp_logistics.data.repository.FcmTokenRequest
+import com.example.lp_logistics.domain.model.DeliveryDetails
+import com.example.lp_logistics.domain.model.Vehicle
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ApiService {
@@ -33,6 +42,13 @@ interface ApiService {
     suspend fun loginEmployee(
         @Body request: LoginRequest
     ): LoginResponse
+
+    // Add this endpoint
+    @PUT("users/{userId}/fcm-token")
+    suspend fun updateFcmToken(
+        @Path("userId") userId: Int,
+        @Body request: FcmTokenRequest
+    )
 
     @POST("logout")
     suspend fun logout(
@@ -137,9 +153,71 @@ interface ApiService {
         @Path("id") id: Int
     ): DeliveryData
 
+
+    @GET("delivery/filtered/{id}")
+    suspend fun getDeliveryDetails(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int
+    ): DeliveryDetails
+
     @POST("report")
     suspend fun postReportForDispatch(
         @Header("Authorization") token: String,
         @Body request: ReportDispatchRequest
     )
+
+    @GET("deliveries/{deliveryId}/dock-assignment")
+    suspend fun getReservedDock(
+        @Header("Authorization") token: String,
+        @Path("deliveryId") deliveryId: Int
+    ): DeliveryDock
+
+    @PATCH("docks/{id}/set-loading")
+    suspend fun setLoadingDock(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int,
+    ): ResponseMessage
+
+    @PATCH("deliveries/{deliveryId}/start-delivering")
+    suspend fun startDelivering(
+        @Header("Authorization") token: String,
+        @Path("deliveryId") deliveryId: Int
+    ): ResponseMessage
+
+    @PATCH("deliveries/{deliveryId}/set-docking")
+    suspend fun setToDocking(
+        @Header("Authorization") token: String,
+        @Path("deliveryId") deliveryId: Int
+    ): ResponseMessage
+
+    @GET("deliveries/{deliveryId}/status")
+    suspend fun getDeliveryStatus(
+        @Header("Authorization") token: String,
+        @Path("deliveryId") deliveryId: Int
+    ): DeliveryStatusResponse
+
+    @PATCH("deliveries/{deliveryId}/complete")
+    suspend fun confirmDeliveryArrival(
+        @Header("Authorization") token: String,
+        @Path("deliveryId") deliveryId: Int
+    ): ResponseMessage
+
+    @GET("driver/{driverId}/vehicle")
+    suspend fun getDriverVehicle(
+        @Header("Authorization") token: String,
+        @Path("driverId") driverId: Int
+    ): Vehicle
+
+    @POST("deliveries/confirm-by-code")
+    suspend fun confirmDeliveryByCode(
+        @Header("Authorization") token: String,
+        @Body request: ConfirmationByQR
+    ): ResponseMessage
+
+    @POST("lots/free")
+    suspend fun freeLot(
+        @Header("Authorization") token: String,
+        @Body request: FreeLot
+    )
 }
+
