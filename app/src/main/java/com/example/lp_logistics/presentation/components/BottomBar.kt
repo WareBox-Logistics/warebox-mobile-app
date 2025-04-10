@@ -88,7 +88,7 @@ fun BottomBar(navController: NavController, isWarehouse: Boolean = false) {
                         .weight(1f)
                         .clickable {
                             if(isWarehouse){
-                                navController.navigate("profile/${isWarehouse}")
+                                navController.navigate("profile?isWarehouse=${isWarehouse}")
                             }else {
                                 navController.navigate("profile")
                             }

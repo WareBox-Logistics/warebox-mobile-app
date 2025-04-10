@@ -14,9 +14,9 @@ class QRCodeScanner(context: Context) {
     private val scanner = GmsBarcodeScanning.getClient(context, options)
 
     suspend fun startScan(): String? {
-        return try{
-            scanner.startScan().await().rawValue.toString()
-        }catch (e: Exception){
+        return try {
+            scanner.startScan().await().rawValue?.toString()
+        } catch (e: Exception) {
             null
         }
     }

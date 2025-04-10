@@ -99,8 +99,8 @@ class RouteViewModel @Inject constructor(
             _polylinePaths.value = parsedData.first
             _routeDirections.value = parsedData.second
             _progress.value = 0f
-            _origin.value = parsedData.second.points.firstOrNull()
-            _destination.value = parsedData.second.points.lastOrNull()
+            _origin.value = parsedData.second.origin
+            _destination.value = parsedData.second.destination
         }
     }
 
@@ -201,6 +201,31 @@ class RouteViewModel @Inject constructor(
         // Parse PolylinePath (keep your existing logic exactly as is)
         val polylinePathArray = json.getJSONArray("PolylinePath")
         val polylinePaths = mutableListOf<PolylinePath>()
+        Log.d("ROUTE_DEBUG", "PolylinePath structure: ${polylinePathArray.toString().take(100)}...")
+        var trueOrigin: Coordinate? = null
+        var trueDestination: Coordinate? = null
+
+        if (polylinePathArray.length() > 0) {
+            val lastSegment = polylinePathArray.getJSONArray(polylinePathArray.length() - 1)
+            if (lastSegment.length() > 0) {
+                val lastCoord = lastSegment.getJSONObject(lastSegment.length() - 1)
+                trueDestination = Coordinate(
+                    lat = lastCoord.getDouble("lat"),
+                    lng = lastCoord.getDouble("lng")
+                )
+            }
+        }
+
+        if (polylinePathArray.length() > 0) {
+            val firstSegment = polylinePathArray.getJSONArray(0)
+            if (firstSegment.length() > 0) {
+                val firstCoord = firstSegment.getJSONObject(0)
+                trueOrigin = Coordinate(
+                    lat = firstCoord.getDouble("lat"),
+                    lng = firstCoord.getDouble("lng")
+                )
+            }
+        }
 
         if (polylinePathArray.length() == 1) {
             val segmentArray = polylinePathArray.getJSONArray(0)
@@ -290,13 +315,38 @@ class RouteViewModel @Inject constructor(
         |Last point remaining: ${points.lastOrNull()?.remainingDistance}
     """.trimMargin())
 
+        val finalOrigin = trueOrigin?.let { origin ->
+            if (points.isNotEmpty() && origin.lat == points[0].lat && origin.lng == points[0].lng) {
+                points[0]
+            } else {
+                origin
+            }
+        } ?: points.firstOrNull() ?: Coordinate(0.0, 0.0)
+        val finalDestination = trueDestination ?: points.lastOrNull() ?: Coordinate(0.0, 0.0)
+
+        Log.d("ORIGIN_VERIFY", """
+    Polyline Origin: ${trueOrigin?.lat}, ${trueOrigin?.lng}
+    Route Origin: ${points.firstOrNull()?.lat}, ${points.firstOrNull()?.lng}
+    Final Origin: ${finalOrigin.lat}, ${finalOrigin.lng}
+""".trimIndent())
+
+        // Add this to parseRoute()
+        Log.d("COORD_DEBUG", """
+    Raw Destination Point: 
+    ${json.getJSONArray("RouteDirections")
+            .getJSONObject(json.getJSONArray("RouteDirections").length() - 1)
+            .getJSONObject("point")}
+""")
+
         return Pair(
             polylinePaths,
             RouteDirection(
                 points = points,
                 instructions = instructions,
                 totalDistance = maxDistance,
-                tollBooths = tollBooths
+                tollBooths = tollBooths,
+                origin = finalOrigin,  // Explicit origin
+                destination = finalDestination
             )
         )
     }

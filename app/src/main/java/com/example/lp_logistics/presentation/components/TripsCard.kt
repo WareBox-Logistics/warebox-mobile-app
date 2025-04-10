@@ -71,7 +71,7 @@ fun TripsCard(
         }
     }
 
-    val shouldDisable = disabled //|| (cardDate != currentDate)
+    val shouldDisable = disabled || (cardDate != currentDate)
 
     val imageResId = when (image) {
         "1" -> R.drawable.truck1

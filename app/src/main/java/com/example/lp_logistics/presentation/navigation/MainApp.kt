@@ -14,8 +14,6 @@ import androidx.compose.material3.CircularProgressIndicator // Import for loadin
 import androidx.compose.foundation.layout.* // Import for layout modifiers
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.lp_logistics.presentation.components.QR.Camera.ScannerNavigator
@@ -37,13 +35,14 @@ fun MainApp(
     locationPermissionGranted: Boolean,
     context: android.content.Context,
 ) {
-    val activity = LocalContext.current as FragmentActivity
-    var isLoading by remember { mutableStateOf(true) } // Loading state
+    var authState by remember { mutableStateOf<AuthState>(AuthState.Loading) }
+    var currentUser by remember { mutableStateOf<User?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // Track the current authentication state
-    val authState by produceState<AuthState>(initialValue = AuthState.Loading) {
-        val user = UserManager.getUser(context)
-        value = when {
+    // Use LaunchedEffect to safely call suspend function
+    LaunchedEffect(Unit) {
+        val user = UserManager.getUser(context) // This is now properly called in coroutine
+        authState = when {
             user == null -> AuthState.Unauthenticated
             user.roleID in listOf(2, 3) -> AuthState.Authenticated(user)
             else -> {
@@ -51,32 +50,28 @@ fun MainApp(
                 AuthState.Unauthenticated
             }
         }
+        currentUser = user
         isLoading = false
     }
-
-    // Calculate the correct start destination
-    val startDestination = remember(authState) {
-        when (authState) {
-            is AuthState.Authenticated -> {
-                when ((authState as AuthState.Authenticated).user.roleID) {
-                    2 -> "pallets" // Warehouse
-                    3 -> "home"    // Driver
-                    else -> "login"
-                }
-            }
+    val startDestination = remember(currentUser) {
+        when (currentUser?.roleID) {
+            2 -> "pallets" // Warehouse
+            3 -> "home"    // Driver
             else -> "login"
         }
     }
 
-    LaunchedEffect(authState) {
+    // Navigation logic
+    LaunchedEffect(authState, currentUser) {
         if (authState is AuthState.Authenticated) {
-            navController.navigate(startDestination) {
-                // Clear the back stack
-                popUpTo(navController.graph.startDestinationId) {
-                    inclusive = true
+            // Only navigate if we're not already on the correct screen
+            if (navController.currentDestination?.route != startDestination) {
+                navController.navigate(startDestination) {
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
                 }
-                // Prevent multiple copies of the same destination
-                launchSingleTop = true
             }
         }
     }
@@ -100,7 +95,7 @@ fun MainApp(
                 "profile?isWarehouse={isWarehouse}",
                 ) { backStackEntry ->
                     val isWarehouse = backStackEntry.arguments?.getBoolean("isWarehouse") ?: false
-                    ProfileScreen(navController, context, isWarehouse)
+                    ProfileScreen(navController, context)
                 }
 
             composable("navigation/{deliveryId}/{deliveryType}/{routeJson}",
@@ -133,13 +128,20 @@ fun MainApp(
                 CreatePalletScreen(navController, creating, palletIDNav)
             }
 
-            composable("qr-scanner?isPallet={isPallet}&delivery={delivery}&driver={driver}"){ backStackEntry ->
-                val isPallet = backStackEntry.arguments?.getString("isPallet")?.toBoolean() ?: false
-                val delivery = backStackEntry.arguments?.getString("delivery")?.toBoolean() ?: false
-                val driver = backStackEntry.arguments?.getString("driver")?.toBoolean() ?: false
+            composable(
+                "qr-scanner?isPallet={isPallet}&delivery={delivery}&driver={driver}",
+                arguments = listOf(
+                    navArgument("isPallet") { type = NavType.BoolType; defaultValue = false },
+                    navArgument("delivery") { type = NavType.BoolType; defaultValue = false },
+                    navArgument("driver") { type = NavType.BoolType; defaultValue = false }
+                )
+            ) { backStackEntry ->
+                val isPallet = backStackEntry.arguments?.getBoolean("isPallet") ?: false
+                val delivery = backStackEntry.arguments?.getBoolean("delivery") ?: false
+                val driver = backStackEntry.arguments?.getBoolean("driver") ?: false
 
-                    ScannerNavigator(navController = navController, isPallet = isPallet, delivery = delivery, driver = driver)
-                }
+                ScannerNavigator(navController, isPallet, delivery, driver)
+            }
 
             composable("box-info?boxID={boxID}"){ backStackEntry ->
                 val boxID = backStackEntry.arguments?.getString("boxID")?.toInt() ?: 0

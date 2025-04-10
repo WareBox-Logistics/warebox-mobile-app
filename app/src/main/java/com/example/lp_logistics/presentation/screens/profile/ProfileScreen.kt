@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.lp_logistics.R
 import com.example.lp_logistics.data.local.UserManager
+import com.example.lp_logistics.data.local.UserManager.isWarehouse
 import com.example.lp_logistics.data.remote.requests.User
 import com.example.lp_logistics.presentation.components.BottomBar
 import com.example.lp_logistics.presentation.components.TopBar
@@ -48,8 +49,9 @@ import com.example.lp_logistics.presentation.theme.LightOrange
 import com.example.lp_logistics.presentation.theme.Orange
 
 @Composable
-fun ProfileScreen(navController: NavController, context: Context, isWarehouse: Boolean = false, viewModel: ProfileViewModel = hiltViewModel()) {
+fun ProfileScreen(navController: NavController, context: Context, viewModel: ProfileViewModel = hiltViewModel()) {
     var user by remember { mutableStateOf<User?>(null) }
+    val isWarehouse = remember(user) { user?.isWarehouse() ?: false }
 
     LaunchedEffect(Unit) {
         user = UserManager.getUser(context)

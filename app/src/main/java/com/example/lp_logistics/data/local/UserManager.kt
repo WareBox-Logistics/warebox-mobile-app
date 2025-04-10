@@ -45,4 +45,6 @@ object UserManager {
             prefs.remove(USER_KEY)
         }
     }
+
+    fun User.isWarehouse(): Boolean = this.roleID == 2
 }

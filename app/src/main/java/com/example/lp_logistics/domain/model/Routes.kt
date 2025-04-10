@@ -72,7 +72,9 @@ data class RouteDirection(
     val points: List<Coordinate>, // List of coordinates representing the route
     val instructions: List<String>, // List of instructions for the route
     val totalDistance: Double, // Length of the route in meters
-    val tollBooths: List<TollBooth> // List of toll booths along the route
+    val tollBooths: List<TollBooth>, // List of toll booths along the route
+    val origin: Coordinate,
+    val destination: Coordinate
 )
 
 data class TollBooth(

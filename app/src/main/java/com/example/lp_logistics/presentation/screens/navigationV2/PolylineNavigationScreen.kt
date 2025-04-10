@@ -71,6 +71,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
 // Google Maps SDK for Android
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 
 // Google Maps Compose
@@ -338,25 +339,7 @@ fun MapScreen(
                     }
 
                     // Recalculate Route Button
-                    if (isOffRoute == true) {
-                        Button(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(80.dp)
-                                .padding(16.dp),
-                            onClick = {
-                                // TODO: Implement recalculate route logic
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Warning),
-                        ) {
-                            Text(
-                                text = "Recalculate Route",
-                                color = WarningText,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+
                 }
             }
         }
@@ -551,48 +534,71 @@ fun GoogleMapView(
     fusedLocationProviderClient: FusedLocationProviderClient,
     cameraPositionState: CameraPositionState,
 ) {
-    // Render GoogleMap
+    // 1. Calculate bounds to include all points
+    val bounds = remember {
+        LatLngBounds.Builder().apply {
+            polylinePaths.flatMap { it.coordinates }.forEach {
+                include(LatLng(it.lat, it.lng))
+            }
+            origin?.let { include(LatLng(it.lat, it.lng)) }
+            destination?.let { include(LatLng(it.lat, it.lng)) }
+        }.build()
+    }
+
+    // 2. Auto-zoom to show all markers
+    LaunchedEffect(bounds) {
+        cameraPositionState.animate(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+    }
+
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = true),
-        uiSettings = MapUiSettings(compassEnabled = true, zoomControlsEnabled = true),
-        onMapLoaded = { onMapLoaded() }
+        uiSettings = MapUiSettings(
+            compassEnabled = true,
+            zoomControlsEnabled = true,
+            zoomGesturesEnabled = true
+        ),
+        onMapLoaded = onMapLoaded
     ) {
-        // Add Polylines
+        // Polylines (unchanged)
         polylinePaths.forEach { polylinePath ->
-            val polylinePoints = polylinePath.coordinates.map {
-                LatLng(it.lat, it.lng)
-            }
             Polyline(
-                points = polylinePoints,
+                points = polylinePath.coordinates.map { LatLng(it.lat, it.lng) },
                 color = Color.Blue,
                 width = 10f
             )
         }
 
-        tollBooths.forEach { tollBooth ->
+        // Toll Booths (unchanged)
+        tollBooths.forEach { toll ->
             Marker(
-                state = MarkerState(position = LatLng(tollBooth.coordinate.lat, tollBooth.coordinate.lng)),
-                title = "Toll Booth",
-                snippet = "Cost: ${tollBooth.cost} pesos",
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                state = MarkerState(LatLng(toll.coordinate.lat, toll.coordinate.lng)),
+                title = "Toll: ${toll.cost} pesos",
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
+                zIndex = 1f
             )
         }
 
-        Marker(
-            state = MarkerState(position = LatLng(origin!!.lat, origin.lng)),
-            title = "Origin",
-            snippet = "Origin",
-            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)
-        )
+        // 3. Origin Marker (fixed)
+        origin?.let { coord ->
+            Marker(
+                state = MarkerState(LatLng(coord.lat, coord.lng)),
+                title = "Origin",
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE),
+                zIndex = 3f, // Highest priority
+                flat = true // Prevents marker tilting
+            )
+        }
 
-        Marker(
-            state = MarkerState(position = LatLng(destination!!.lat, destination.lng)),
-            title = "Destination",
-            snippet = "Destination",
-            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)
-        )//skibidi
+        // 4. Destination Marker
+        destination?.let { coord ->
+            Marker(
+                state = MarkerState(LatLng(coord.lat, coord.lng)),
+                title = "Destination",
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA),
+                zIndex = 2f
+            )
+        }
     }
 }
-
